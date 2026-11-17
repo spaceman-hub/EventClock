@@ -740,7 +740,7 @@
                   Publish Competition Schedule
                 </h2>
                 <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                  Publishing automatically alerts users and advances the countdown from Single Entry closing to Double/Triple Entry closing and Competition Day.
+                  Only the Competition Name is required. Any entry or competition date left blank will display as <strong>To Be Announced</strong> until you add it.
                 </p>
               </div>
               <button
@@ -755,10 +755,10 @@
             <form id="competitionForm" class="space-y-5">
               <input type="hidden" id="editingEventId" value="" />
 
-              <!-- Competition Name -->
+              <!-- Competition Name (Required) -->
               <div>
                 <label for="compNameInput" class="block text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
-                  Competition Name
+                  Competition Name <span class="text-amber-500">*</span>
                 </label>
                 <input
                   id="compNameInput"
@@ -769,58 +769,65 @@
                 />
               </div>
 
-              <!-- 3-Stage Dates Grid -->
+              <!-- 3-Stage Dates Grid (All Dates & Times Optional) -->
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Stage 1: Single Entry Fees Last Date & Time -->
-                <div class="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 space-y-2">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="text-[11px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                <!-- Stage 1: Single Entry Fees Last Date & Time (Optional) -->
+                <div class="min-w-0 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 space-y-2">
+                  <div class="flex items-center justify-between gap-2 min-w-0">
+                    <span class="min-w-0 truncate text-[11px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">
                       1. Single Entry Fees
                     </span>
-                    <span class="text-[10px] font-bold text-slate-400">Last Date &amp; Time</span>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <span class="text-[10px] font-bold text-slate-400">Optional</span>
+                      <button type="button" data-clear-input="singleEntryDeadlineInput" class="text-[10px] font-bold text-rose-500 hover:underline">Clear</button>
+                    </div>
                   </div>
                   <input
                     id="singleEntryDeadlineInput"
                     type="datetime-local"
-                    required
-                    class="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    class="w-full min-w-0 max-w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
 
-                <!-- Stage 2: Double / Triple Entry Fees Last Date & Time -->
-                <div class="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 space-y-2">
-                  <div class="flex items-center justify-between gap-2">
+                <!-- Stage 2: Double / Triple Entry Fees Last Date & Time (Optional) -->
+                <div class="min-w-0 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 space-y-2">
+                  <div class="flex items-center justify-between gap-2 min-w-0">
                     <select
                       id="lateFeeTierSelect"
                       aria-label="Late Entry Fee Type"
-                      class="text-[11px] font-extrabold uppercase tracking-wider text-sky-600 dark:text-sky-400 bg-transparent focus:outline-none cursor-pointer"
+                      class="min-w-0 flex-1 truncate text-[11px] font-extrabold uppercase tracking-wider text-sky-600 dark:text-sky-400 bg-transparent focus:outline-none cursor-pointer"
                     >
-                      <option value="Double / Triple Entry Fees">2. Double / Triple Entry Fees</option>
-                      <option value="Double Entry Fees">2. Double Entry Fees</option>
-                      <option value="Triple Entry Fees">2. Triple Entry Fees</option>
+                      <option value="Double / Triple Entry Fees" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">2. Double / Triple Entry Fees</option>
+                      <option value="Double Entry Fees" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">2. Double Entry Fees</option>
+                      <option value="Triple Entry Fees" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">2. Triple Entry Fees</option>
                     </select>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <span class="text-[10px] font-bold text-slate-400">Optional</span>
+                      <button type="button" data-clear-input="lateEntryDeadlineInput" class="text-[10px] font-bold text-rose-500 hover:underline">Clear</button>
+                    </div>
                   </div>
                   <input
                     id="lateEntryDeadlineInput"
                     type="datetime-local"
-                    required
-                    class="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    class="w-full min-w-0 max-w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
 
-                <!-- Stage 3: Competition Date -->
-                <div class="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 space-y-2">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                <!-- Stage 3: Competition Date & Time (Optional) -->
+                <div class="min-w-0 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 space-y-2">
+                  <div class="flex items-center justify-between gap-2 min-w-0">
+                    <span class="min-w-0 truncate text-[11px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                       3. Competition Date
                     </span>
-                    <span class="text-[10px] font-bold text-slate-400">Start Date &amp; Time</span>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <span class="text-[10px] font-bold text-slate-400">Optional</span>
+                      <button type="button" data-clear-input="competitionDateInput" class="text-[10px] font-bold text-rose-500 hover:underline">Clear</button>
+                    </div>
                   </div>
                   <input
                     id="competitionDateInput"
                     type="datetime-local"
-                    required
-                    class="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    class="w-full min-w-0 max-w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
               </div>
@@ -828,7 +835,7 @@
               <!-- Quick Date Helper Chips -->
               <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <div class="flex flex-wrap items-center gap-1.5">
-                  <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1">Quick Schedule Preset:</span>
+                  <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1">Optional Quick Fill:</span>
                   <button type="button" data-quick-preset="7" class="quick-preset-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">
                     In 1 Week
                   </button>
@@ -837,6 +844,9 @@
                   </button>
                   <button type="button" data-quick-preset="30" class="quick-preset-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">
                     In 30 Days
+                  </button>
+                  <button type="button" id="clearAllDatesBtn" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-colors">
+                    Clear All Dates
                   </button>
                 </div>
 
@@ -1170,7 +1180,7 @@
       </div>
 
       <p id="alertModalSummaryText" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
-        The organizer has updated the registration deadlines and live countdown below:
+        The organizer has updated the competition schedule:
       </p>
 
       <div id="alertModalMilestones" class="space-y-2.5"></div>
@@ -1181,7 +1191,7 @@
           type="button"
           class="w-full sm:flex-1 py-3 px-4 rounded-xl text-sm font-extrabold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 transition-colors"
         >
-          View Live Countdown
+          View Schedule
         </button>
         <button
           id="alertModalEnablePushBtn"
@@ -1420,12 +1430,16 @@
           stageSingle: 'Single Entry Registration Closes In',
           stageCompetition: 'Competition Starts In',
           stageLive: 'Competition Day • Live Now!',
+          stageOver: 'WAITING FOR THE NEXT COMPETITION...',
+          stageTba: 'Schedule To Be Announced',
           lblSingleEntry: 'Single Entry Fees',
           lblCompDate: 'Competition Date',
           badgeActive: 'Active',
           badgeNext: 'Next',
           badgeClosed: 'Closed',
           badgeLive: 'Live',
+          badgeTba: 'TBA',
+          dateTba: 'To Be Announced',
         },
         mr: {
           navCountdowns: 'स्पर्धा काउंटडाउन',
@@ -1446,12 +1460,15 @@
           stageSingle: 'सिंगल एन्ट्री नोंदणी अंतिम मुदत',
           stageCompetition: 'स्पर्धा सुरू होण्यास वेळ',
           stageLive: 'स्पर्धेचा दिवस • थेट सुरू!',
+          stageTba: 'वेळापत्रक लवकरच जाहीर होईल',
           lblSingleEntry: 'सिंगल एन्ट्री फी अंतिम तारीख',
           lblCompDate: 'स्पर्धेची तारीख',
           badgeActive: 'सुरू',
           badgeNext: 'पुढील',
           badgeClosed: 'बंद',
           badgeLive: 'थेट',
+          badgeTba: 'लवकरच',
+          dateTba: 'लवकरच जाहीर होईल',
         },
         hi: {
           navCountdowns: 'काउंटडाउन',
@@ -1472,17 +1489,20 @@
           stageSingle: 'सिंगल एंट्री पंजीकरण समाप्ति',
           stageCompetition: 'प्रतियोगिता शुरू होने में शेष',
           stageLive: 'प्रतियोगिता दिवस • लाइव!',
+          stageTba: 'तिथियां शीघ्र घोषित होंगी',
           lblSingleEntry: 'सिंगल एंट्री फीस अंतिम तिथि',
           lblCompDate: 'प्रतियोगिता तिथि',
           badgeActive: 'सक्रिय',
           badgeNext: 'अगला',
           badgeClosed: 'समाप्त',
           badgeLive: 'लाइव',
+          badgeTba: 'शीघ्र',
+          dateTba: 'शीघ्र घोषित होगी',
         },
-        gu: { navCountdowns: 'કાઉન્ટડાઉન', navTimer: 'ટાઈમર', navStopwatch: 'સ્ટોપવોચ', navWorldClock: 'વિશ્વ ઘડિયાળ', displayMode: 'ડિસ્પ્લે મોડ', exitDisplay: 'બહાર નીકળો', installApp: 'એપ ઇન્સ્ટોલ', unitDays: 'દિવસ', unitHours: 'કલાક', unitMinutes: 'મિનિટ', unitSeconds: 'સેકન્ડ' },
+        gu: { navCountdowns: 'કાઉન્ટડાઉન', navTimer: 'ટાઈમર', navStopwatch: 'સ્ટોપવોચ', navWorldClock: 'વિશ્વ ઘડિયાળ', displayMode: 'ડિસ્પ્લે મોડ', exitDisplay: 'બહાર નીકળો', installApp: 'એપ ઇન્ਸਟોલ', unitDays: 'દિવસ', unitHours: 'કલાક', unitMinutes: 'મિનિટ', unitSeconds: 'સેકન્ડ' },
         ta: { navCountdowns: 'கவுண்டவுன்', navTimer: 'டைமர்', navStopwatch: 'ஸ்டாப்வாட்ச்', navWorldClock: 'உலக கடிகாரம்', displayMode: 'காட்சி முறை', exitDisplay: 'வெளியேறு', installApp: 'செயலி நிறுவு', unitDays: 'நாட்கள்', unitHours: 'மணி', unitMinutes: 'நிமிடங்கள்', unitSeconds: 'வினாடிகள்' },
         te: { navCountdowns: 'కౌంట్‌డౌన్', navTimer: 'టైమర్', navStopwatch: 'స్టాప్‌వాచ్', navWorldClock: 'ప్రపంచ గడియారం', displayMode: 'డిస్‌ప్లే మోడ్', exitDisplay: 'నిష్క్రమించు', installApp: 'యాప్ ఇన్‌స్టాల్', unitDays: 'రోజులు', unitHours: 'గంటలు', unitMinutes: 'నిమిషాలు', unitSeconds: 'సెకన్లు' },
-        kn: { navCountdowns: 'ಕೌಂಟ್‌ಡೌನ್', navTimer: 'ಟೈಮರ್', navStopwatch: 'ಸ್ಟಾಪ್‌ವಾಚ್', navWorldClock: 'ವಿಶ್ವ ಗಡಿಯಾರ', displayMode: 'ಡಿಸ್ಪ್ಲೇ ಮೋಡ್', exitDisplay: 'ನಿರ್ಗಮಿಸಿ', installApp: 'ಆಪ್ ಸ್ಥಾಪಿಸಿ', unitDays: 'ದಿನಗಳು', unitHours: 'ಗಂಟೆಗಳು', unitMinutes: 'ನಿಮಿಷಗಳು', unitSeconds: 'ಸೆಕೆಂಡುಗಳು' },
+        kn: { navCountdowns: 'ಕೌಂಟ್‌ಡౌನ್', navTimer: 'ಟೈಮರ್', navStopwatch: 'ಸ್ಟಾಪ್‌ವಾಚ್', navWorldClock: 'ವಿಶ್ವ ಗಡಿಯಾರ', displayMode: 'ಡಿಸ್ಪ್ಲೇ ಮೋಡ್', exitDisplay: 'ನಿರ್ಗಮಿಸಿ', installApp: 'ಆಪ್ ಸ್ಥಾಪಿಸಿ', unitDays: 'ದಿನಗಳು', unitHours: 'ಗಂಟೆಗಳು', unitMinutes: 'ನಿಮಿಷಗಳು', unitSeconds: 'ಸೆಕೆಂಡುಗಳು' },
         bn: { navCountdowns: 'কাউন্টডাউন', navTimer: 'টাইমার', navStopwatch: 'স্টপওয়াচ', navWorldClock: 'বিশ্ব ঘড়ি', displayMode: 'ডিসপ্লে মোড', exitDisplay: 'প্রস্থান', installApp: 'অ্যাপ ইনস্টল', unitDays: 'দিন', unitHours: 'ঘণ্টা', unitMinutes: 'মিনিট', unitSeconds: 'সেকেন্ড' },
         pa: { navCountdowns: 'ਕਾਊਂਟਡਾਊਨ', navTimer: 'ਟਾਈਮਰ', navStopwatch: 'ਸਟੌਪਵਾਚ', navWorldClock: 'ਵਿਸ਼ਵ ਘੜੀ', displayMode: 'ਡਿਸਪਲੇ ਮੋਡ', exitDisplay: 'ਬਾਹਰ ਜਾਓ', installApp: 'ਐਪ ਇੰਸਟਾਲ', unitDays: 'ਦਿਨ', unitHours: 'ਘੰਟੇ', unitMinutes: 'ਮਿੰਟ', unitSeconds: 'ਸਕਿੰਟ' },
         es: { navCountdowns: 'Cuenta Atrás', navTimer: 'Temporizador', navStopwatch: 'Cronómetro', navWorldClock: 'Reloj Mundial', displayMode: 'Modo Pantalla', exitDisplay: 'Salir', installApp: 'Instalar App', unitDays: 'Días', unitHours: 'Horas', unitMinutes: 'Minutos', unitSeconds: 'Segundos' },
@@ -1634,6 +1654,7 @@
         lateFeeTierSelect: document.getElementById('lateFeeTierSelect'),
         lateEntryDeadlineInput: document.getElementById('lateEntryDeadlineInput'),
         competitionDateInput: document.getElementById('competitionDateInput'),
+        clearAllDatesBtn: document.getElementById('clearAllDatesBtn'),
         submitCompetitionLabel: document.getElementById('submitCompetitionLabel'),
 
         organizerEventsBar: document.getElementById('organizerEventsBar'),
@@ -1839,6 +1860,23 @@
           .replace(/'/g, '&#39;');
       }
 
+      function buildEventUpdateSummary(evt) {
+        if (!evt) return 'Competition schedule updated by organizer.';
+        const parts = [];
+        if (evt.singleEntryDeadline) {
+          parts.push(`Single Entry: ${formatMilestoneDateTime(evt.singleEntryDeadline)}`);
+        }
+        if (evt.lateEntryDeadline) {
+          parts.push(`${evt.lateFeeTierLabel || 'Double / Triple Entry'}: ${formatMilestoneDateTime(evt.lateEntryDeadline)}`);
+        }
+        if (evt.competitionDate) {
+          parts.push(`Competition Date: ${formatMilestoneDateTime(evt.competitionDate)}`);
+        }
+        return parts.length
+          ? `${evt.name} — ${parts.join(' • ')}`
+          : `${evt.name} — Competition announced (Dates To Be Announced).`;
+      }
+
       /* -----------------------------------------------------------------------
          SYSTEM DEVICE NOTIFICATIONS & USER ALERT SYSTEM
          ----------------------------------------------------------------------- */
@@ -1971,7 +2009,7 @@
 
         dom.alertModalCompName.textContent = targetEvt.name;
         dom.alertModalSummaryText.textContent =
-          customNotice || 'The organizer has updated the competition schedule and countdown:';
+          customNotice || 'The organizer has updated the competition schedule:';
 
         const lateTier = targetEvt.lateFeeTierLabel || 'Double / Triple Entry Fees';
         dom.alertModalMilestones.innerHTML = `
@@ -1995,11 +2033,7 @@
 
       async function deliverLiveCompetitionAlert(noticeText) {
         const latestEvt = state.events[0];
-        const summary =
-          noticeText ||
-          (latestEvt
-            ? `${latestEvt.name} — Registration dates & countdown updated.`
-            : 'Competition registration dates & countdown updated by organizer.');
+        const summary = noticeText || buildEventUpdateSummary(latestEvt);
 
         // 1. Update top banner
         dom.liveUpdateAlertText.textContent = summary;
@@ -2017,11 +2051,8 @@
         const notifTitle = latestEvt
           ? `📢 ${state.brandTitle || 'EVENTCLOCK'}: ${latestEvt.name}`
           : `📢 ${state.brandTitle || 'EVENTCLOCK'} Update`;
-        const notifBody = latestEvt
-          ? `Single Entry: ${formatMilestoneDateTime(latestEvt.singleEntryDeadline)} • ${latestEvt.lateFeeTierLabel || 'Double / Triple Entry'}: ${formatMilestoneDateTime(latestEvt.lateEntryDeadline)} • Competition: ${formatMilestoneDateTime(latestEvt.competitionDate)}`
-          : summary;
 
-        await triggerSystemNotification(notifTitle, notifBody);
+        await triggerSystemNotification(notifTitle, summary);
       }
 
       /* -----------------------------------------------------------------------
@@ -2188,7 +2219,7 @@
                 if (remote.brandTitle) state.brandTitle = remote.brandTitle;
                 if (typeof remote.brandTagline === 'string') state.brandTagline = remote.brandTagline;
                 state.revision = remoteRev;
-                state.broadcastNotice = remote.broadcastNotice || 'Competition registration dates & countdown updated by organizer.';
+                state.broadcastNotice = remote.broadcastNotice || buildEventUpdateSummary(state.events[0]);
                 saveLocalState();
                 applyBrandHeader();
                 renderCountdownBoards();
@@ -2214,7 +2245,7 @@
 
       async function pushBroadcastToCloud(noticeMessage) {
         state.revision = Date.now();
-        state.broadcastNotice = noticeMessage || 'Competition registration dates & countdown updated by organizer.';
+        state.broadcastNotice = noticeMessage || buildEventUpdateSummary(state.events[0]);
         saveLocalState();
         localStorage.setItem(SEEN_REVISION_KEY, String(state.revision));
 
@@ -2296,9 +2327,7 @@
 
       async function handleLockAndPushPublicView() {
         const latestEvent = state.events[0];
-        const summaryNotice = latestEvent
-          ? `${latestEvent.name} — Single Entry closes ${formatMilestoneDateTime(latestEvent.singleEntryDeadline)} • Competition starts ${formatMilestoneDateTime(latestEvent.competitionDate)}.`
-          : 'Competition countdown schedule updated by organizer.';
+        const summaryNotice = buildEventUpdateSummary(latestEvent);
 
         const pushedToCloud = await pushBroadcastToCloud(summaryNotice);
 
@@ -2312,7 +2341,6 @@
           } catch (_) {}
         }
 
-        // Send a confirmation notification to this device as well so the organizer sees the live alert
         const notifTitle = latestEvent
           ? `📢 ${state.brandTitle || 'EVENTCLOCK'}: ${latestEvent.name}`
           : `📢 ${state.brandTitle || 'EVENTCLOCK'} Update`;
@@ -2376,12 +2404,12 @@
       }
 
       /* -----------------------------------------------------------------------
-         MULTI-STAGE COMPETITION COUNTDOWN LOGIC & RENDERING
+         MULTI-STAGE COMPETITION COUNTDOWN LOGIC & RENDERING (OPTIONAL DATES SUPPORTED)
          ----------------------------------------------------------------------- */
       function formatMilestoneDateTime(isoStr) {
-        if (!isoStr) return '—';
+        if (!isoStr) return t('dateTba');
         const d = new Date(isoStr);
-        if (Number.isNaN(d.getTime())) return '—';
+        if (Number.isNaN(d.getTime())) return t('dateTba');
         return d.toLocaleString(undefined, {
           day: '2-digit',
           month: 'short',
@@ -2392,9 +2420,13 @@
       }
 
       function getCompetitionStageInfo(evt, nowMs) {
-        const singleMs = new Date(evt.singleEntryDeadline).getTime();
-        const lateMs = new Date(evt.lateEntryDeadline).getTime();
-        const compMs = new Date(evt.competitionDate).getTime();
+        const hasSingle = Boolean(evt.singleEntryDeadline);
+        const hasLate = Boolean(evt.lateEntryDeadline);
+        const hasComp = Boolean(evt.competitionDate);
+
+        const singleMs = hasSingle ? new Date(evt.singleEntryDeadline).getTime() : NaN;
+        const lateMs = hasLate ? new Date(evt.lateEntryDeadline).getTime() : NaN;
+        const compMs = hasComp ? new Date(evt.competitionDate).getTime() : NaN;
         const lateTierName = evt.lateFeeTierLabel || 'Double / Triple Entry Fees';
 
         if (!Number.isNaN(singleMs) && nowMs < singleMs) {
@@ -2424,12 +2456,21 @@
             badgeBg: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
           };
         }
+        if (!Number.isNaN(compMs) || !Number.isNaN(lateMs) || !Number.isNaN(singleMs)) {
+          return {
+            phase: 'over',
+            targetMs: compMs || lateMs || singleMs,
+            headline: 'WAITING FOR THE NEXT COMPETITION...',
+            accentClass: 'text-amber-500',
+            badgeBg: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
+          };
+        }
         return {
-          phase: 'live',
-          targetMs: compMs || nowMs,
-          headline: t('stageLive'),
-          accentClass: 'text-amber-500',
-          badgeBg: 'bg-amber-500 text-slate-950 border-amber-400',
+          phase: 'tba',
+          targetMs: nowMs,
+          headline: t('stageTba'),
+          accentClass: 'text-slate-400',
+          badgeBg: 'bg-slate-500/15 text-slate-600 dark:text-slate-300 border-slate-500/30',
         };
       }
 
@@ -2443,8 +2484,14 @@
 
         if (!state.events.length) {
           container.innerHTML = `
-            <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-10 text-center shadow-lg">
-              <p class="text-sm sm:text-base font-bold text-slate-600 dark:text-slate-300">No upcoming competitions scheduled yet.</p>
+            <div class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/95 p-10 sm:p-16 text-center shadow-xl space-y-4">
+              <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-amber-500/35 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-extrabold uppercase tracking-widest">
+                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span>STANDBY</span>
+              </div>
+              <h1 class="text-2xl sm:text-4xl lg:text-5xl font-black uppercase tracking-wider text-slate-900 dark:text-white leading-tight">
+                WAITING FOR THE NEXT COMPETITION...
+              </h1>
             </div>
           `;
           return;
@@ -2455,52 +2502,44 @@
           .map((evt) => {
             const stage = getCompetitionStageInfo(evt, nowMs);
             const lateTierName = evt.lateFeeTierLabel || 'Double / Triple Entry Fees';
-            const isLive = stage.phase === 'live';
+            const isOver = stage.phase === 'over';
 
-            const singleStatus =
-              stage.phase === 'single'
+            const singleStatus = !evt.singleEntryDeadline
+              ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400">${t('badgeTba')}</span>`
+              : stage.phase === 'single'
                 ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-500 text-slate-950">${t('badgeActive')}</span>`
                 : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400">${t('badgeClosed')}</span>`;
 
-            const lateStatus =
-              stage.phase === 'late'
+            const lateStatus = !evt.lateEntryDeadline
+              ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400">${t('badgeTba')}</span>`
+              : stage.phase === 'late'
                 ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-sky-500 text-slate-950">${t('badgeActive')}</span>`
                 : stage.phase === 'single'
                   ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">${t('badgeNext')}</span>`
                   : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400">${t('badgeClosed')}</span>`;
 
-            const compStatus =
-              stage.phase === 'competition'
+            const compStatus = !evt.competitionDate
+              ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400">${t('badgeTba')}</span>`
+              : stage.phase === 'competition'
                 ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500 text-slate-950">${t('badgeActive')}</span>`
-                : stage.phase === 'live'
-                  ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-500 text-slate-950">${t('badgeLive')}</span>`
+                : isOver
+                  ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400">${t('badgeClosed')}</span>`
                   : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">${t('badgeNext')}</span>`;
 
-            const confettiHtml = isLive
-              ? `<div class="pointer-events-none absolute inset-0 overflow-hidden">
-                  <span class="confetti-piece bg-amber-400" style="left:12%;animation-delay:0.1s"></span>
-                  <span class="confetti-piece bg-emerald-400" style="left:32%;animation-delay:0.7s"></span>
-                  <span class="confetti-piece bg-sky-400" style="left:58%;animation-delay:0.3s"></span>
-                  <span class="confetti-piece bg-rose-400" style="left:78%;animation-delay:1.1s"></span>
-                  <span class="confetti-piece bg-amber-300" style="left:90%;animation-delay:0.5s"></span>
-                </div>`
-              : '';
-
-            return `
-              <article data-board-id="${escapeHtml(evt.id)}" data-active-phase="${stage.phase}" class="relative overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/95 p-5 sm:p-8 lg:p-10 shadow-xl ${isLive ? 'match-day-glow border-amber-500/50' : ''}">
-                ${confettiHtml}
-
-                <!-- Competition Name & Current Countdown Stage Pill -->
-                <div class="text-center space-y-2.5 mb-6 sm:mb-8">
-                  <h1 class="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-white">
-                    ${escapeHtml(evt.name)}
-                  </h1>
-                  <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs sm:text-sm font-extrabold ${stage.badgeBg}">
-                    <span class="w-2 h-2 rounded-full bg-current animate-pulse"></span>
-                    <span id="stageHeadline-${escapeHtml(evt.id)}">${escapeHtml(stage.headline)}</span>
+            const mainStageContent = isOver
+              ? `
+                <!-- Standby Screen Once Countdown Is Over -->
+                <div class="my-4 sm:my-6 rounded-2xl border border-amber-500/40 bg-gradient-to-b from-slate-100 to-slate-200/70 dark:from-slate-950 dark:to-slate-900/90 px-5 py-10 sm:px-10 sm:py-14 text-center shadow-inner space-y-4">
+                  <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[11px] sm:text-xs font-extrabold uppercase tracking-widest">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>COUNTDOWN ENDED</span>
                   </div>
+                  <p class="text-2xl sm:text-4xl lg:text-5xl font-black uppercase tracking-wider text-slate-900 dark:text-white leading-tight">
+                    WAITING FOR THE NEXT COMPETITION...
+                  </p>
                 </div>
-
+              `
+              : `
                 <!-- 4-Unit Mechanical Split-Flap Countdown Paddles -->
                 <div class="grid grid-cols-4 gap-2.5 sm:gap-5 max-w-4xl mx-auto">
                   <div class="text-center">
@@ -2547,6 +2586,27 @@
                     <span data-i18n="unitSeconds" class="block mt-2 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">${t('unitSeconds')}</span>
                   </div>
                 </div>
+              `;
+
+            return `
+              <article data-board-id="${escapeHtml(evt.id)}" data-active-phase="${stage.phase}" class="relative overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/95 p-5 sm:p-8 lg:p-10 shadow-xl">
+
+                <!-- Competition Name & Current Countdown Stage Pill -->
+                <div class="text-center space-y-2.5 mb-6 sm:mb-8">
+                  <h1 class="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-white">
+                    ${escapeHtml(evt.name)}
+                  </h1>
+                  ${
+                    isOver
+                      ? ''
+                      : `<div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs sm:text-sm font-extrabold ${stage.badgeBg}">
+                          <span class="w-2 h-2 rounded-full bg-current ${stage.phase !== 'tba' ? 'animate-pulse' : ''}"></span>
+                          <span id="stageHeadline-${escapeHtml(evt.id)}">${escapeHtml(stage.headline)}</span>
+                        </div>`
+                  }
+                </div>
+
+                ${mainStageContent}
 
                 <!-- 3-Stage Registration & Competition Schedule Strip -->
                 <div class="mt-7 sm:mt-9 pt-6 border-t border-slate-200/80 dark:border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl mx-auto">
@@ -2556,7 +2616,7 @@
                       <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">${t('lblSingleEntry')}</span>
                       ${singleStatus}
                     </div>
-                    <p class="font-mono text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                    <p class="font-mono text-xs sm:text-sm font-bold ${evt.singleEntryDeadline ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}">
                       ${escapeHtml(formatMilestoneDateTime(evt.singleEntryDeadline))}
                     </p>
                   </div>
@@ -2567,18 +2627,18 @@
                       <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">${escapeHtml(lateTierName)}</span>
                       ${lateStatus}
                     </div>
-                    <p class="font-mono text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                    <p class="font-mono text-xs sm:text-sm font-bold ${evt.lateEntryDeadline ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}">
                       ${escapeHtml(formatMilestoneDateTime(evt.lateEntryDeadline))}
                     </p>
                   </div>
 
                   <!-- Milestone 3: Competition Date -->
-                  <div class="p-3.5 rounded-2xl border ${stage.phase === 'competition' || stage.phase === 'live' ? 'border-emerald-500/60 bg-emerald-500/10' : 'border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60'}">
+                  <div class="p-3.5 rounded-2xl border ${stage.phase === 'competition' ? 'border-emerald-500/60 bg-emerald-500/10' : 'border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60'}">
                     <div class="flex items-center justify-between gap-2 mb-1">
                       <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">${t('lblCompDate')}</span>
                       ${compStatus}
                     </div>
-                    <p class="font-mono text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                    <p class="font-mono text-xs sm:text-sm font-bold ${evt.competitionDate ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}">
                       ${escapeHtml(formatMilestoneDateTime(evt.competitionDate))}
                     </p>
                   </div>
@@ -2606,6 +2666,8 @@
             return;
           }
 
+          if (stage.phase === 'over' || stage.phase === 'tba') return;
+
           const diffMs = Math.max(0, stage.targetMs - nowMs);
           const totalSec = Math.floor(diffMs / 1000);
           const days = Math.floor(totalSec / 86400);
@@ -2628,13 +2690,19 @@
       /* -----------------------------------------------------------------------
          ORGANIZER FORM & PUBLISHED LIST MANAGEMENT
          ----------------------------------------------------------------------- */
+      function clearAllFormDates() {
+        dom.singleEntryDeadlineInput.value = '';
+        dom.lateEntryDeadlineInput.value = '';
+        dom.competitionDateInput.value = '';
+      }
+
       function resetCompetitionForm() {
         dom.editingEventId.value = '';
         dom.compNameInput.value = '';
+        clearAllFormDates();
         dom.formHeadingTitle.textContent = 'Publish Competition Schedule';
         dom.submitCompetitionLabel.textContent = 'Publish & Alert Users';
         dom.cancelEditEventBtn.classList.add('hidden');
-        applyQuickSchedulePreset(15);
       }
 
       function applyQuickSchedulePreset(compDaysAhead) {
@@ -3083,7 +3151,6 @@
           document.head.appendChild(link);
         } catch (_) {}
 
-        // Register Service Worker on HTTPS/localhost so installed PWAs can display OS notifications
         if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
           try {
             const swCode = `
@@ -3264,16 +3331,27 @@
           showToast('Settings saved & synced.', 'success');
         });
 
-        // Competition Form Submit (Create or Update)
+        // Individual date clear buttons & Clear All Dates button
+        document.querySelectorAll('[data-clear-input]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-clear-input');
+            const inputEl = document.getElementById(targetId);
+            if (inputEl) inputEl.value = '';
+          });
+        });
+
+        dom.clearAllDatesBtn.addEventListener('click', clearAllFormDates);
+
+        // Competition Form Submit (Only Competition Name is required; all dates optional)
         dom.competitionForm.addEventListener('submit', async (e) => {
           e.preventDefault();
           const name = dom.compNameInput.value.trim();
-          const singleEntryDeadline = dom.singleEntryDeadlineInput.value;
+          const singleEntryDeadline = dom.singleEntryDeadlineInput.value || '';
           const lateFeeTierLabel = dom.lateFeeTierSelect.value;
-          const lateEntryDeadline = dom.lateEntryDeadlineInput.value;
-          const competitionDate = dom.competitionDateInput.value;
+          const lateEntryDeadline = dom.lateEntryDeadlineInput.value || '';
+          const competitionDate = dom.competitionDateInput.value || '';
 
-          if (!name || !singleEntryDeadline || !lateEntryDeadline || !competitionDate) return;
+          if (!name) return;
 
           const editId = dom.editingEventId.value;
           let savedEvt;
@@ -3306,7 +3384,7 @@
           renderCountdownBoards();
           renderOrganizerEventsList();
 
-          const notice = `${name} — Single Entry closes ${formatMilestoneDateTime(singleEntryDeadline)} • Competition starts ${formatMilestoneDateTime(competitionDate)}.`;
+          const notice = buildEventUpdateSummary(savedEvt);
           await pushBroadcastToCloud(notice);
           await triggerSystemNotification(`📢 ${state.brandTitle || 'EVENTCLOCK'}: ${name}`, notice);
           showToast('Competition published & user alert sent! Click "Lock, Alert Users & Switch to Public View" when finished.', 'success');
@@ -3332,10 +3410,10 @@
             if (!evt) return;
             dom.editingEventId.value = evt.id;
             dom.compNameInput.value = evt.name;
-            dom.singleEntryDeadlineInput.value = evt.singleEntryDeadline;
+            dom.singleEntryDeadlineInput.value = evt.singleEntryDeadline || '';
             dom.lateFeeTierSelect.value = evt.lateFeeTierLabel || 'Double / Triple Entry Fees';
-            dom.lateEntryDeadlineInput.value = evt.lateEntryDeadline;
-            dom.competitionDateInput.value = evt.competitionDate;
+            dom.lateEntryDeadlineInput.value = evt.lateEntryDeadline || '';
+            dom.competitionDateInput.value = evt.competitionDate || '';
             dom.formHeadingTitle.textContent = 'Edit Competition Schedule';
             dom.submitCompetitionLabel.textContent = 'Save & Alert Users';
             dom.cancelEditEventBtn.classList.remove('hidden');
@@ -3394,7 +3472,7 @@
           stopTabTitleFlash();
         });
 
-        // Cross-tab localStorage listener (triggers alert in open public tabs immediately when testing locally)
+        // Cross-tab localStorage listener
         window.addEventListener('storage', async (e) => {
           if (e.key === STORAGE_KEY && e.newValue) {
             try {
@@ -3415,7 +3493,6 @@
           }
         });
 
-        // Stop tab title flash when user returns focus to the tab/app
         window.addEventListener('focus', stopTabTitleFlash);
 
         // Public Share, QR Code & Print
@@ -3685,7 +3762,7 @@
           updateWorldClockTick(true);
         });
 
-        // Keyboard Shortcuts (Ctrl/Cmd+Shift+E for Organizer, Space, L, R, F)
+        // Keyboard Shortcuts
         window.addEventListener('keydown', (e) => {
           if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'e') {
             e.preventDefault();
@@ -3734,7 +3811,7 @@
         applyBrandHeader();
         applyThemeAndPrefs();
         updateNotificationButtonUI();
-        applyQuickSchedulePreset(15);
+        resetCompetitionForm();
         populateWorldCitySelect();
         renderCountdownBoards();
         renderTimerDisplay(true);
