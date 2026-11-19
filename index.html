@@ -1,1 +1,2225 @@
+<!DOCTYPE html>
+<html lang="en" class="dark"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#070b14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>EventClock — Live Competition Countdown &amp; Venue Board</title>
 
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@600;700;800&amp;display=swap" rel="stylesheet">
+
+  <!-- Firebase Compat SDKs (App + Firestore) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg-primary: #070b14;
+      --bg-card: #0f1626;
+      --accent-orange: #f97316;
+      --accent-amber: #fbbf24;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #070b14;
+      background-image:
+        radial-gradient(circle at 15% 10%, rgba(249, 115, 22, 0.12), transparent 38%),
+        radial-gradient(circle at 85% 15%, rgba(59, 130, 246, 0.10), transparent 40%),
+        linear-gradient(180deg, #070b14 0%, #0b1120 100%);
+      color: #f8fafc;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Mechanical Split-Flap (Flip-Flop) Digit Card */
+    .flap-card {
+      position: relative;
+      background: linear-gradient(180deg, #1a2336 0%, #111827 49.5%, #090d16 50.5%, #131c2e 100%);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 0.75rem;
+      box-shadow:
+        0 10px 25px -5px rgba(0, 0, 0, 0.65),
+        inset 0 1px 0 rgba(255, 255, 255, 0.10);
+      overflow: hidden;
+      transition: transform 0.18s ease;
+    }
+
+    .flap-card::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 2px;
+      background: rgba(2, 6, 23, 0.92);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .flap-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 50%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent);
+      pointer-events: none;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.55;
+        transform: scale(0.96);
+      }
+    }
+
+    .pulse-glow {
+      animation: pulseGlow 2.2s infinite ease-in-out;
+    }
+
+    @keyframes standbyBlink {
+      0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 18px rgba(251, 191, 36, 0.24);
+      }
+      50% {
+        opacity: 0.25;
+        box-shadow: 0 0 4px rgba(251, 191, 36, 0.04);
+      }
+    }
+
+    .standby-pill-blink {
+      animation: standbyBlink 1.4s infinite ease-in-out;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #070b14;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    /* Kiosk Fullscreen Mode Adjustments */
+    body.kiosk-active header#mainHeader,
+    body.kiosk-active nav#clockModeNav,
+    body.kiosk-active section#organizerPanel {
+      display: none !important;
+    }
+
+    body.kiosk-active main {
+      padding-top: 1.5rem;
+      max-width: 1400px;
+    }
+
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      filter: invert(1) opacity(0.75);
+      cursor: pointer;
+    }
+  </style>
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.fixed{position:fixed}.relative{position:relative}.sticky{position:sticky}.inset-0{inset:0px}.bottom-4{bottom:1rem}.left-1\/2{left:50%}.right-4{right:1rem}.top-0{top:0px}.top-3{top:0.75rem}.z-30{z-index:30}.z-40{z-index:40}.z-50{z-index:50}.mx-auto{margin-left:auto;margin-right:auto}.my-8{margin-top:2rem;margin-bottom:2rem}.mb-1{margin-bottom:0.25rem}.mt-3\.5{margin-top:0.875rem}.mt-4{margin-top:1rem}.mb-1\.5{margin-bottom:0.375rem}.mb-2{margin-bottom:0.5rem}.mb-6{margin-bottom:1.5rem}.mt-2{margin-top:0.5rem}.mt-5{margin-top:1.25rem}.mt-6{margin-top:1.5rem}.mb-5{margin-bottom:1.25rem}.mt-1{margin-top:0.25rem}.mt-3{margin-top:0.75rem}.block{display:block}.flex{display:flex}.inline-flex{display:inline-flex}.grid{display:grid}.hidden{display:none}.h-11{height:2.75rem}.h-2{height:0.5rem}.h-2\.5{height:0.625rem}.h-4{height:1rem}.h-5{height:1.25rem}.h-6{height:1.5rem}.h-8{height:2rem}.h-9{height:2.25rem}.h-64{height:16rem}.h-16{height:4rem}.max-h-56{max-height:14rem}.max-h-\[90vh\]{max-height:90vh}.min-h-\[58vh\]{min-height:58vh}.w-11{width:2.75rem}.w-2{width:0.5rem}.w-2\.5{width:0.625rem}.w-4{width:1rem}.w-5{width:1.25rem}.w-6{width:1.5rem}.w-8{width:2rem}.w-9{width:2.25rem}.w-\[94vw\]{width:94vw}.w-full{width:100%}.w-16{width:4rem}.min-w-0{min-width:0px}.max-w-6xl{max-width:72rem}.max-w-xl{max-width:36rem}.max-w-2xl{max-width:42rem}.max-w-4xl{max-width:56rem}.max-w-md{max-width:28rem}.max-w-sm{max-width:24rem}.max-w-3xl{max-width:48rem}.flex-1{flex:1 1 0%}.shrink-0{flex-shrink:0}.-translate-x-1\/2{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-end{align-items:flex-end}.items-center{align-items:center}.items-baseline{align-items:baseline}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1\.5{gap:0.375rem}.gap-2{gap:0.5rem}.gap-2\.5{gap:0.625rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.space-y-3 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.75rem * var(--tw-space-y-reverse))}.space-y-4 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}.space-y-1\.5 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.375rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.375rem * var(--tw-space-y-reverse))}.space-y-2\.5 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.625rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.625rem * var(--tw-space-y-reverse))}.space-y-6 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.5rem * var(--tw-space-y-reverse))}.overflow-y-auto{overflow-y:auto}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rounded-2xl{border-radius:1rem}.rounded-3xl{border-radius:1.5rem}.rounded-\[14px\]{border-radius:14px}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-xl{border-radius:0.75rem}.border{border-width:1px}.border-b{border-bottom-width:1px}.border-t{border-top-width:1px}.border-amber-500\/30{border-color:rgb(245 158 11 / 0.3)}.border-amber-500\/40{border-color:rgb(245 158 11 / 0.4)}.border-emerald-500\/35{border-color:rgb(16 185 129 / 0.35)}.border-orange-500\/40{border-color:rgb(249 115 22 / 0.4)}.border-sky-500\/40{border-color:rgb(14 165 233 / 0.4)}.border-slate-700{--tw-border-opacity:1;border-color:rgb(51 65 85 / var(--tw-border-opacity, 1))}.border-slate-700\/80{border-color:rgb(51 65 85 / 0.8)}.border-slate-800{--tw-border-opacity:1;border-color:rgb(30 41 59 / var(--tw-border-opacity, 1))}.border-slate-800\/80{border-color:rgb(30 41 59 / 0.8)}.border-slate-800\/90{border-color:rgb(30 41 59 / 0.9)}.border-orange-500\/35{border-color:rgb(249 115 22 / 0.35)}.border-rose-500\/40{border-color:rgb(244 63 94 / 0.4)}.border-rose-500\/50{border-color:rgb(244 63 94 / 0.5)}.border-slate-700\/90{border-color:rgb(51 65 85 / 0.9)}.border-slate-800\/70{border-color:rgb(30 41 59 / 0.7)}.bg-amber-400{--tw-bg-opacity:1;background-color:rgb(251 191 36 / var(--tw-bg-opacity, 1))}.bg-amber-500{--tw-bg-opacity:1;background-color:rgb(245 158 11 / var(--tw-bg-opacity, 1))}.bg-amber-500\/10{background-color:rgb(245 158 11 / 0.1)}.bg-amber-500\/15{background-color:rgb(245 158 11 / 0.15)}.bg-amber-950\/50{background-color:rgb(69 26 3 / 0.5)}.bg-emerald-400{--tw-bg-opacity:1;background-color:rgb(52 211 153 / var(--tw-bg-opacity, 1))}.bg-emerald-500\/10{background-color:rgb(16 185 129 / 0.1)}.bg-orange-500{--tw-bg-opacity:1;background-color:rgb(249 115 22 / var(--tw-bg-opacity, 1))}.bg-orange-500\/20{background-color:rgb(249 115 22 / 0.2)}.bg-sky-500\/15{background-color:rgb(14 165 233 / 0.15)}.bg-slate-800{--tw-bg-opacity:1;background-color:rgb(30 41 59 / var(--tw-bg-opacity, 1))}.bg-slate-800\/80{background-color:rgb(30 41 59 / 0.8)}.bg-slate-800\/90{background-color:rgb(30 41 59 / 0.9)}.bg-slate-900{--tw-bg-opacity:1;background-color:rgb(15 23 42 / var(--tw-bg-opacity, 1))}.bg-slate-900\/80{background-color:rgb(15 23 42 / 0.8)}.bg-slate-900\/90{background-color:rgb(15 23 42 / 0.9)}.bg-slate-900\/95{background-color:rgb(15 23 42 / 0.95)}.bg-slate-950\/70{background-color:rgb(2 6 23 / 0.7)}.bg-slate-950\/85{background-color:rgb(2 6 23 / 0.85)}.bg-slate-950\/95{background-color:rgb(2 6 23 / 0.95)}.bg-orange-400{--tw-bg-opacity:1;background-color:rgb(251 146 60 / var(--tw-bg-opacity, 1))}.bg-orange-500\/10{background-color:rgb(249 115 22 / 0.1)}.bg-orange-500\/15{background-color:rgb(249 115 22 / 0.15)}.bg-rose-500\/15{background-color:rgb(244 63 94 / 0.15)}.bg-rose-600{--tw-bg-opacity:1;background-color:rgb(225 29 72 / var(--tw-bg-opacity, 1))}.bg-rose-950\/60{background-color:rgb(76 5 25 / 0.6)}.bg-slate-950{--tw-bg-opacity:1;background-color:rgb(2 6 23 / var(--tw-bg-opacity, 1))}.bg-slate-950\/60{background-color:rgb(2 6 23 / 0.6)}.bg-slate-950\/90{background-color:rgb(2 6 23 / 0.9)}.bg-slate-950\/50{background-color:rgb(2 6 23 / 0.5)}.bg-gradient-to-br{background-image:linear-gradient(to bottom right, var(--tw-gradient-stops))}.bg-gradient-to-r{background-image:linear-gradient(to right, var(--tw-gradient-stops))}.from-orange-500{--tw-gradient-from:#f97316 var(--tw-gradient-from-position);--tw-gradient-to:rgb(249 115 22 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-orange-600{--tw-gradient-from:#ea580c var(--tw-gradient-from-position);--tw-gradient-to:rgb(234 88 12 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-amber-500{--tw-gradient-from:#f59e0b var(--tw-gradient-from-position);--tw-gradient-to:rgb(245 158 11 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-emerald-500{--tw-gradient-from:#10b981 var(--tw-gradient-from-position);--tw-gradient-to:rgb(16 185 129 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.via-amber-600{--tw-gradient-to:rgb(217 119 6 / 0)  var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), #d97706 var(--tw-gradient-via-position), var(--tw-gradient-to)}.to-amber-600{--tw-gradient-to:#d97706 var(--tw-gradient-to-position)}.to-orange-600{--tw-gradient-to:#ea580c var(--tw-gradient-to-position)}.to-amber-500{--tw-gradient-to:#f59e0b var(--tw-gradient-to-position)}.to-orange-500{--tw-gradient-to:#f97316 var(--tw-gradient-to-position)}.to-teal-600{--tw-gradient-to:#0d9488 var(--tw-gradient-to-position)}.p-0\.5{padding:0.125rem}.p-1\.5{padding:0.375rem}.p-2\.5{padding:0.625rem}.p-3\.5{padding:0.875rem}.p-4{padding:1rem}.p-3{padding:0.75rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.px-2\.5{padding-left:0.625rem;padding-right:0.625rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-3\.5{padding-left:0.875rem;padding-right:0.875rem}.px-4{padding-left:1rem;padding-right:1rem}.py-0\.5{padding-top:0.125rem;padding-bottom:0.125rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-1\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.px-5{padding-left:1.25rem;padding-right:1.25rem}.px-7{padding-left:1.75rem;padding-right:1.75rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.py-3\.5{padding-top:0.875rem;padding-bottom:0.875rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-16{padding-top:4rem;padding-bottom:4rem}.pb-3{padding-bottom:0.75rem}.pb-4{padding-bottom:1rem}.pt-3\.5{padding-top:0.875rem}.pb-20{padding-bottom:5rem}.pr-1{padding-right:0.25rem}.pt-1{padding-top:0.25rem}.pt-4{padding-top:1rem}.text-left{text-align:left}.text-center{text-align:center}.text-\[11px\]{font-size:11px}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.text-2xl{font-size:1.5rem;line-height:2rem}.text-5xl{font-size:3rem;line-height:1}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.font-bold{font-weight:700}.font-extrabold{font-weight:800}.font-medium{font-weight:500}.font-semibold{font-weight:600}.font-black{font-weight:900}.uppercase{text-transform:uppercase}.leading-relaxed{line-height:1.625}.tracking-tight{letter-spacing:-0.025em}.tracking-wide{letter-spacing:0.025em}.tracking-wider{letter-spacing:0.05em}.tracking-\[0\.45em\]{letter-spacing:0.45em}.tracking-\[0\.18em\]{letter-spacing:0.18em}.text-amber-200{--tw-text-opacity:1;color:rgb(253 230 138 / var(--tw-text-opacity, 1))}.text-amber-300{--tw-text-opacity:1;color:rgb(252 211 77 / var(--tw-text-opacity, 1))}.text-emerald-300{--tw-text-opacity:1;color:rgb(110 231 183 / var(--tw-text-opacity, 1))}.text-emerald-400{--tw-text-opacity:1;color:rgb(52 211 153 / var(--tw-text-opacity, 1))}.text-emerald-400\/80{color:rgb(52 211 153 / 0.8)}.text-orange-400{--tw-text-opacity:1;color:rgb(251 146 60 / var(--tw-text-opacity, 1))}.text-rose-400{--tw-text-opacity:1;color:rgb(251 113 133 / var(--tw-text-opacity, 1))}.text-sky-300{--tw-text-opacity:1;color:rgb(125 211 252 / var(--tw-text-opacity, 1))}.text-sky-400{--tw-text-opacity:1;color:rgb(56 189 248 / var(--tw-text-opacity, 1))}.text-slate-200{--tw-text-opacity:1;color:rgb(226 232 240 / var(--tw-text-opacity, 1))}.text-slate-300{--tw-text-opacity:1;color:rgb(203 213 225 / var(--tw-text-opacity, 1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.text-slate-950{--tw-text-opacity:1;color:rgb(2 6 23 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-amber-400{--tw-text-opacity:1;color:rgb(251 191 36 / var(--tw-text-opacity, 1))}.text-orange-300{--tw-text-opacity:1;color:rgb(253 186 116 / var(--tw-text-opacity, 1))}.text-rose-200{--tw-text-opacity:1;color:rgb(254 205 211 / var(--tw-text-opacity, 1))}.text-rose-300{--tw-text-opacity:1;color:rgb(253 164 175 / var(--tw-text-opacity, 1))}.text-amber-500\/90{color:rgb(245 158 11 / 0.9)}.antialiased{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.placeholder-slate-500::placeholder{--tw-placeholder-opacity:1;color:rgb(100 116 139 / var(--tw-placeholder-opacity, 1))}.placeholder-slate-600::placeholder{--tw-placeholder-opacity:1;color:rgb(71 85 105 / var(--tw-placeholder-opacity, 1))}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgb(0 0 0 / 0.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-xl{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-inner{--tw-shadow:inset 0 2px 4px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:inset 0 2px 4px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-orange-500\/20{--tw-shadow-color:rgb(249 115 22 / 0.2);--tw-shadow:var(--tw-shadow-colored)}.shadow-orange-500\/25{--tw-shadow-color:rgb(249 115 22 / 0.25);--tw-shadow:var(--tw-shadow-colored)}.shadow-orange-950\/20{--tw-shadow-color:rgb(67 20 7 / 0.2);--tw-shadow:var(--tw-shadow-colored)}.shadow-emerald-500\/20{--tw-shadow-color:rgb(16 185 129 / 0.2);--tw-shadow:var(--tw-shadow-colored)}.backdrop-blur{--tw-backdrop-blur:blur(8px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.backdrop-blur-md{--tw-backdrop-blur:blur(12px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.backdrop-blur-xl{--tw-backdrop-blur:blur(24px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.selection\:bg-orange-500 *::selection{--tw-bg-opacity:1;background-color:rgb(249 115 22 / var(--tw-bg-opacity, 1))}.selection\:text-white *::selection{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.selection\:bg-orange-500::selection{--tw-bg-opacity:1;background-color:rgb(249 115 22 / var(--tw-bg-opacity, 1))}.selection\:text-white::selection{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.hover\:border-orange-500\/50:hover{border-color:rgb(249 115 22 / 0.5)}.hover\:border-orange-500\/60:hover{border-color:rgb(249 115 22 / 0.6)}.hover\:border-slate-700:hover{--tw-border-opacity:1;border-color:rgb(51 65 85 / var(--tw-border-opacity, 1))}.hover\:border-orange-500:hover{--tw-border-opacity:1;border-color:rgb(249 115 22 / var(--tw-border-opacity, 1))}.hover\:bg-amber-400:hover{--tw-bg-opacity:1;background-color:rgb(251 191 36 / var(--tw-bg-opacity, 1))}.hover\:bg-amber-500\/25:hover{background-color:rgb(245 158 11 / 0.25)}.hover\:bg-orange-400:hover{--tw-bg-opacity:1;background-color:rgb(251 146 60 / var(--tw-bg-opacity, 1))}.hover\:bg-sky-500\/25:hover{background-color:rgb(14 165 233 / 0.25)}.hover\:bg-slate-700:hover{--tw-bg-opacity:1;background-color:rgb(51 65 85 / var(--tw-bg-opacity, 1))}.hover\:bg-slate-800:hover{--tw-bg-opacity:1;background-color:rgb(30 41 59 / var(--tw-bg-opacity, 1))}.hover\:bg-slate-800\/70:hover{background-color:rgb(30 41 59 / 0.7)}.hover\:bg-rose-500:hover{--tw-bg-opacity:1;background-color:rgb(244 63 94 / var(--tw-bg-opacity, 1))}.hover\:bg-rose-500\/25:hover{background-color:rgb(244 63 94 / 0.25)}.hover\:text-orange-300:hover{--tw-text-opacity:1;color:rgb(253 186 116 / var(--tw-text-opacity, 1))}.hover\:text-white:hover{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.hover\:text-rose-400:hover{--tw-text-opacity:1;color:rgb(251 113 133 / var(--tw-text-opacity, 1))}.hover\:brightness-110:hover{--tw-brightness:brightness(1.1);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.focus\:border-orange-500:focus{--tw-border-opacity:1;border-color:rgb(249 115 22 / var(--tw-border-opacity, 1))}.focus\:border-amber-500:focus{--tw-border-opacity:1;border-color:rgb(245 158 11 / var(--tw-border-opacity, 1))}.focus\:border-emerald-500:focus{--tw-border-opacity:1;border-color:rgb(16 185 129 / var(--tw-border-opacity, 1))}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}.active\:scale-95:active{--tw-scale-x:.95;--tw-scale-y:.95;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.active\:scale-\[0\.99\]:active{--tw-scale-x:0.99;--tw-scale-y:0.99;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.disabled\:opacity-40:disabled{opacity:0.4}@media (min-width: 640px){.sm\:inline{display:inline}.sm\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.sm\:p-6{padding:1.5rem}.sm\:p-8{padding:2rem}.sm\:text-2xl{font-size:1.5rem;line-height:2rem}.sm\:text-4xl{font-size:2.25rem;line-height:2.5rem}.sm\:text-7xl{font-size:4.5rem;line-height:1}.sm\:text-sm{font-size:0.875rem;line-height:1.25rem}.sm\:text-base{font-size:1rem;line-height:1.5rem}}@media (min-width: 768px){.md\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.md\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.md\:text-5xl{font-size:3rem;line-height:1}}@media (min-width: 1024px){.lg\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}}</style></head>
+<body class="antialiased selection:bg-orange-500 selection:text-white">
+
+  <!-- Live Announcement / Alert Banner -->
+  <div id="announcementBanner" class="hidden fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[94vw] max-w-xl rounded-2xl bg-gradient-to-r from-orange-600 via-amber-600 to-orange-600 p-0.5 shadow-2xl">
+    <div class="flex items-center justify-between gap-3 rounded-[14px] bg-slate-950/95 px-4 py-3 backdrop-blur-md">
+      <div class="flex items-center gap-3 min-w-0">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+          </svg>
+        </span>
+        <div class="min-w-0">
+          <p id="announcementTitle" class="text-xs font-extrabold uppercase tracking-wider text-orange-400">LIVE BOARD UPDATE</p>
+          <p id="announcementBody" class="truncate text-sm font-semibold text-white">Competition schedule updated.</p>
+        </div>
+      </div>
+      <button type="button" onclick="dismissAnnouncement()" class="shrink-0 rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-700 hover:text-white">
+        OK
+      </button>
+    </div>
+  </div>
+
+  <!-- Kiosk Exit Floating Button -->
+  <button id="exitKioskBtn" type="button" onclick="requestExitKiosk()" class="hidden fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full border border-slate-700/80 bg-slate-900/90 px-4 py-2 text-xs font-bold text-slate-300 shadow-xl backdrop-blur hover:border-orange-500/60 hover:text-white">
+    <svg class="h-4 w-4 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+    </svg>
+    <span>Exit Stage Display</span>
+  </button>
+
+  <!-- Main Top Header -->
+  <header id="mainHeader" class="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/85 backdrop-blur-xl">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <!-- Brand + Secret Triple-Tap Stopwatch Trigger -->
+      <div class="flex items-center gap-3">
+        <button id="stopwatchSecretBtn" type="button" onclick="handleSecretTap()" title="EventClock" class="group relative flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/25 transition active:scale-95">
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <circle cx="12" cy="13" r="8"></circle>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4l2.5 2.5M9 2h6M12 2v3"></path>
+          </svg>
+        </button>
+
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 id="headerBrandTitle" class="text-xl sm:text-2xl font-extrabold tracking-tight text-white uppercase">EVENTCLOCK</h1>
+            <span id="liveStatusBadge" class="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300">
+              <span id="liveStatusDot" class="h-2 w-2 rounded-full bg-emerald-400 pulse-glow"></span>
+              <span id="liveStatusText">LIVE SYNC</span>
+            </span>
+          </div>
+          <p id="headerBrandSubtitle" class="text-[11px] font-medium tracking-wider text-slate-400 uppercase">Live Competition Countdown &amp; Venue Board</p>
+        </div>
+      </div>
+
+      <!-- Public Header Actions -->
+      <div class="flex items-center gap-2">
+        <button id="soundToggleBtn" type="button" onclick="toggleSound()" title="Toggle Alert Chime" class="flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/90 px-3 py-2 text-xs font-bold text-slate-300 transition hover:border-slate-700 hover:text-white">
+          <span id="soundIconWrap">
+            <svg class="h-4 w-4 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+            </svg>
+          </span>
+          <span class="hidden sm:inline" id="soundLabel">Sound On</span>
+        </button>
+
+        <button id="installAppBtn" type="button" onclick="triggerInstallPrompt()" class="flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/90 px-3 py-2 text-xs font-bold text-slate-200 transition hover:border-orange-500/50 hover:text-orange-300">
+          <svg class="h-4 w-4 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          <span>Install App</span>
+        </button>
+
+        <button id="kioskToggleBtn" type="button" onclick="enterKioskMode()" title="Full-Screen Venue Display" class="flex items-center gap-1.5 rounded-xl bg-slate-800/90 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-700">
+          <svg class="h-4 w-4 text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+          </svg>
+          <span class="hidden sm:inline">Stage Display</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 4 Clock Utility Pills -->
+  <nav id="clockModeNav" class="mx-auto mt-4 max-w-6xl px-4">
+    <div class="inline-flex flex-wrap items-center gap-1.5 rounded-2xl border border-slate-800/90 bg-slate-900/80 p-1.5 shadow-lg">
+      <button type="button" data-mode="event" onclick="switchClockMode('event')" class="mode-pill flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-xs font-extrabold tracking-wide text-white shadow-md shadow-orange-500/25 transition">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+          <path d="M16 2v4M8 2v4M3 10h18"></path>
+        </svg>
+        <span>Event Clock</span>
+      </button>
+
+      <button type="button" data-mode="timer" onclick="switchClockMode('timer')" class="mode-pill flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold tracking-wide text-slate-400 transition hover:bg-slate-800/70 hover:text-white">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path stroke-linecap="round" d="M12 7v5l3 3"></path>
+        </svg>
+        <span>Timer</span>
+      </button>
+
+      <button type="button" data-mode="stopwatch" onclick="switchClockMode('stopwatch')" class="mode-pill flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold tracking-wide text-slate-400 transition hover:bg-slate-800/70 hover:text-white">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <circle cx="12" cy="13" r="8"></circle>
+          <path stroke-linecap="round" d="M12 9v4l2 2M10 2h4"></path>
+        </svg>
+        <span>Stopwatch</span>
+      </button>
+
+      <button type="button" data-mode="world" onclick="switchClockMode('world')" class="mode-pill flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold tracking-wide text-slate-400 transition hover:bg-slate-800/70 hover:text-white">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M3.6 9h16.8M3.6 15h16.8M12 3a14.5 14.5 0 000 18 14.5 14.5 0 000-18"></path>
+        </svg>
+        <span>World Timer</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- SUPER ADMIN / ORGANIZER MODE PANEL (Hidden until triple-tap + PIN) -->
+  <section id="organizerPanel" class="mx-auto mt-4 max-w-6xl px-4 hidden">
+    <div class="rounded-3xl border border-orange-500/40 bg-slate-900/95 p-4 sm:p-6 shadow-2xl shadow-orange-950/20">
+      <!-- Organizer Top Control Bar -->
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-2.5">
+          <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+          </span>
+          <div>
+            <h2 class="text-sm font-extrabold uppercase tracking-wider text-orange-400">Super Admin • Organizer Mode</h2>
+            <p class="text-xs text-slate-400">Multiple competitions run side-by-side without overwriting active clocks.</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Copy HTML for GitHub -->
+          <button type="button" onclick="openHtmlExportModal()" class="flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs font-extrabold text-amber-300 transition hover:bg-amber-500/25">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            <span>Copy HTML for GitHub</span>
+          </button>
+
+          <!-- Test Devices Simulator -->
+          <button type="button" onclick="openDummyDevicesModal()" class="flex items-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 py-2 text-xs font-extrabold text-sky-300 transition hover:bg-sky-500/25">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="5" y="2" width="14" height="20" rx="2"></rect>
+              <path d="M12 18h.01"></path>
+            </svg>
+            <span>Test Devices</span>
+          </button>
+
+          <!-- Lock Organizer Mode -->
+          <button type="button" onclick="lockOrganizerMode()" class="flex items-center gap-1.5 rounded-xl bg-slate-800 px-3 py-2 text-xs font-bold text-slate-200 transition hover:bg-slate-700">
+            <svg class="h-4 w-4 text-rose-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+            <span>Lock &amp; Public View</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Firebase Live Connection Banner -->
+      <div id="firebaseStatusBanner" class="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-3 text-xs">
+        <div class="flex items-center gap-2.5">
+          <span id="fbBannerDot" class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
+          <span id="fbBannerText" class="font-bold text-emerald-300">Connected to Firebase (eventclock-live-17f8b) — Live Push to All Devices Active</span>
+        </div>
+        <span class="font-mono-num text-[11px] text-emerald-400/80">Board: main_board</span>
+      </div>
+
+      <!-- Organizer Tabs -->
+      <div class="mt-4 flex flex-wrap gap-2 border-b border-slate-800 pb-3">
+        <button type="button" data-orgtab="competitions" onclick="switchOrganizerTab('competitions')" class="org-tab-btn rounded-xl bg-orange-500 px-3.5 py-2 text-xs font-extrabold text-white">
+          Add / Update Competition
+        </button>
+        <button type="button" data-orgtab="manage" onclick="switchOrganizerTab('manage')" class="org-tab-btn rounded-xl bg-slate-800/80 px-3.5 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800">
+          Running Clocks (<span id="manageCountBadge">0</span>)
+        </button>
+      </div>
+
+      <!-- Hidden / Collapsible Organizer PIN & Reset Options -->
+      <div class="mt-4 rounded-2xl border border-slate-800/90 bg-slate-950/70 p-3.5">
+        <button type="button" onclick="togglePinResetSection()" class="flex w-full items-center justify-between text-left">
+          <div class="flex items-center gap-2">
+            <svg class="h-4 w-4 text-orange-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+            <span class="text-xs font-extrabold uppercase tracking-wider text-slate-300">Organizer PIN &amp; Reset Options</span>
+          </div>
+          <span id="pinResetChevron" class="text-[11px] font-bold text-slate-400">Show ▾</span>
+        </button>
+
+        <div id="pinResetDrawer" class="hidden mt-3.5 space-y-3 border-t border-slate-800/80 pt-3.5">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Set New Organizer PIN (4–8 Digits)
+              </label>
+              <input id="settingsPinInput" type="password" inputmode="numeric" maxlength="8" placeholder="Enter new PIN" autocomplete="off" class="font-mono-num w-full rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-2 text-xs font-bold text-white placeholder-slate-500 focus:border-orange-500 focus:outline-none">
+            </div>
+
+            <div class="flex flex-wrap items-end gap-2">
+              <button type="button" onclick="saveNewOrganizerPin()" class="rounded-xl bg-orange-500 px-4 py-2 text-xs font-extrabold text-white shadow-md shadow-orange-500/20 hover:bg-orange-400">
+                Save New PIN
+              </button>
+              <button type="button" onclick="confirmResetPinToDefault()" class="rounded-xl border border-amber-500/40 bg-amber-500/15 px-3.5 py-2 text-xs font-extrabold text-amber-300 hover:bg-amber-500/25">
+                Reset PIN to 1234
+              </button>
+            </div>
+          </div>
+
+          <div id="resetPinConfirmBar" class="hidden flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/40 bg-amber-950/50 p-2.5 text-xs">
+            <span class="font-bold text-amber-200">Reset Organizer PIN back to 1234 across all devices?</span>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="executeResetPinToDefault()" class="rounded-lg bg-amber-500 px-3 py-1 font-extrabold text-slate-950 hover:bg-amber-400">Yes, Reset</button>
+              <button type="button" onclick="hideResetPinConfirm()" class="rounded-lg bg-slate-800 px-3 py-1 font-bold text-slate-300 hover:bg-slate-700">Cancel</button>
+            </div>
+          </div>
+
+          <div id="settingsFeedback" class="hidden rounded-xl px-3.5 py-2 text-xs font-bold"></div>
+        </div>
+      </div>
+
+      <!-- Tab 1: Add / Edit Competition Form -->
+      <div id="orgTab-competitions" class="mt-4 space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 id="formModeHeading" class="text-sm font-extrabold text-white">Add New Competition Clock</h3>
+          <button type="button" id="cancelEditBtn" onclick="resetCompetitionForm()" class="hidden rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-bold text-slate-300 hover:text-white">
+            + Switch to New Event
+          </button>
+        </div>
+
+        <input type="hidden" id="editingCompId" value="">
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+              Competition Name <span class="text-orange-400">*</span>
+            </label>
+            <input id="compNameInput" type="text" placeholder="e.g., National Taekwondo Championship 2026" class="w-full rounded-xl border border-slate-700 bg-slate-950/90 px-3.5 py-2.5 text-sm font-semibold text-white placeholder-slate-500 focus:border-orange-500 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
+              Venue / City / Notes (Optional)
+            </label>
+            <input id="compVenueInput" type="text" placeholder="e.g., Indoor Sports Arena, Mumbai" class="w-full rounded-xl border border-slate-700 bg-slate-950/90 px-3.5 py-2.5 text-sm font-semibold text-white placeholder-slate-500 focus:border-orange-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <!-- Single Entry Fees Deadline -->
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-3.5">
+            <div class="mb-1.5 flex items-center justify-between">
+              <label class="text-xs font-bold uppercase tracking-wider text-emerald-400">Single Entry Fees</label>
+              <button type="button" onclick="clearDateField('singleEntryInput')" class="text-[11px] font-bold text-slate-400 hover:text-rose-400">Clear</button>
+            </div>
+            <input id="singleEntryInput" type="datetime-local" class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-white focus:border-emerald-500 focus:outline-none">
+          </div>
+
+          <!-- Double / Triple Entry Fees Deadline -->
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-3.5">
+            <div class="mb-1.5 flex items-center justify-between">
+              <label class="text-xs font-bold uppercase tracking-wider text-amber-400">Double / Triple Entry</label>
+              <button type="button" onclick="clearDateField('doubleEntryInput')" class="text-[11px] font-bold text-slate-400 hover:text-rose-400">Clear</button>
+            </div>
+            <input id="doubleEntryInput" type="datetime-local" class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-white focus:border-amber-500 focus:outline-none">
+          </div>
+
+          <!-- Competition Date -->
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-3.5">
+            <div class="mb-1.5 flex items-center justify-between">
+              <label class="text-xs font-bold uppercase tracking-wider text-orange-400">Competition Date</label>
+              <button type="button" onclick="clearDateField('compDateInput')" class="text-[11px] font-bold text-slate-400 hover:text-rose-400">Clear</button>
+            </div>
+            <input id="compDateInput" type="datetime-local" class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-white focus:border-orange-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
+            Registration / Circular Link (Optional)
+          </label>
+          <input id="compUrlInput" type="url" placeholder="https://..." class="w-full rounded-xl border border-slate-700 bg-slate-950/90 px-3.5 py-2.5 text-xs font-semibold text-white placeholder-slate-500 focus:border-orange-500 focus:outline-none">
+        </div>
+
+        <div id="orgFormFeedback" class="hidden rounded-xl px-3.5 py-2.5 text-xs font-bold"></div>
+
+        <div class="flex flex-wrap items-center gap-3 pt-1">
+          <button type="button" onclick="publishCompetition(true)" class="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-3 text-xs sm:text-sm font-extrabold text-white shadow-lg shadow-orange-500/25 transition hover:brightness-110 active:scale-[0.99]">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span id="publishPrimaryBtnLabel">Push Now &amp; Alert All Devices</span>
+          </button>
+
+          <button type="button" onclick="publishCompetition(false)" class="rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-xs font-bold text-slate-200 transition hover:bg-slate-700">
+            Save Silently (No Alert)
+          </button>
+
+          <button type="button" onclick="resetCompetitionForm()" class="rounded-2xl px-3 py-3 text-xs font-bold text-slate-400 hover:text-white">
+            Clear Form
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Manage Running Clocks -->
+      <div id="orgTab-manage" class="hidden mt-4 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-xs text-slate-400">Edit or remove individual competition clocks without affecting other running events.</p>
+          <button type="button" onclick="confirmClearAllCompetitions()" class="rounded-xl border border-rose-500/40 bg-rose-500/15 px-3 py-1.5 text-xs font-extrabold text-rose-300 hover:bg-rose-500/25">
+            Stop All &amp; Enter Standby
+          </button>
+        </div>
+
+        <div id="clearAllConfirmBar" class="hidden flex-wrap items-center justify-between gap-2 rounded-2xl border border-rose-500/50 bg-rose-950/60 p-3 text-xs">
+          <span class="font-bold text-rose-200">Remove all active competition clocks and switch all displays to Standby Mode?</span>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="executeClearAllCompetitions()" class="rounded-lg bg-rose-600 px-3 py-1.5 font-extrabold text-white hover:bg-rose-500">Yes, Clear All</button>
+            <button type="button" onclick="hideClearAllConfirm()" class="rounded-lg bg-slate-800 px-3 py-1.5 font-bold text-slate-300 hover:bg-slate-700">Cancel</button>
+          </div>
+        </div>
+
+        <div id="manageCompetitionsList" class="space-y-2.5"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN PUBLIC VIEWPORT -->
+  <main class="mx-auto max-w-6xl px-4 py-6 pb-20">
+
+    <!-- VIEW 1: EVENT CLOCK (Multi-Competition Live Split-Flap Boards) -->
+    <section id="view-event" class="clock-view space-y-6">
+      <!-- Top Summary Strip -->
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <span id="activeClocksCountPill" class="hidden inline-flex items-center gap-2 rounded-full border border-orange-500/35 bg-orange-500/10 px-3.5 py-1 text-xs font-extrabold tracking-wide text-orange-300 uppercase">
+            <span class="h-2 w-2 rounded-full bg-orange-400 pulse-glow"></span>
+            <span id="activeClocksCountText">STANDBY MODE</span>
+          </span>
+        </div>
+        <div class="text-xs font-semibold text-slate-400">
+          Local Venue Time: <span id="venueLiveNowClock" class="font-mono-num font-bold text-slate-200">08:06:48 PM</span>
+        </div>
+      </div>
+
+      <!-- Multi-Event Grid Container -->
+      <div id="multiEventClocksContainer" class="grid grid-cols-1 gap-6"></div>
+    </section>
+
+    <!-- VIEW 2: COUNTDOWN TIMER -->
+    <section id="view-timer" class="clock-view hidden">
+      <div class="mx-auto max-w-2xl rounded-3xl border border-slate-800/90 bg-slate-900/80 p-6 sm:p-8 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-lg font-extrabold text-white uppercase tracking-wide">Match / Round Timer</h2>
+            <p class="text-xs text-slate-400">Quick countdown for bouts, warmups, and stage intervals.</p>
+          </div>
+          <span id="timerStatusTag" class="rounded-full bg-slate-800 px-3 py-1 text-xs font-bold text-slate-300">Ready</span>
+        </div>
+
+        <!-- Big Digital Readout -->
+        <div class="my-8 flex items-center justify-center">
+          <div id="timerDisplay" class="font-mono-num text-5xl sm:text-7xl font-extrabold tracking-tight text-white">
+            00:05:00
+          </div>
+        </div>
+
+        <!-- Quick Presets -->
+        <div class="mb-6 flex flex-wrap items-center justify-center gap-2">
+          <button type="button" onclick="setTimerPreset(60)" class="rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2 text-xs font-bold text-slate-200 hover:border-orange-500 hover:text-orange-300">1 Min</button>
+          <button type="button" onclick="setTimerPreset(120)" class="rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2 text-xs font-bold text-slate-200 hover:border-orange-500 hover:text-orange-300">2 Mins</button>
+          <button type="button" onclick="setTimerPreset(180)" class="rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2 text-xs font-bold text-slate-200 hover:border-orange-500 hover:text-orange-300">3 Mins</button>
+          <button type="button" onclick="setTimerPreset(300)" class="rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2 text-xs font-bold text-slate-200 hover:border-orange-500 hover:text-orange-300">5 Mins</button>
+          <button type="button" onclick="setTimerPreset(600)" class="rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2 text-xs font-bold text-slate-200 hover:border-orange-500 hover:text-orange-300">10 Mins</button>
+        </div>
+
+        <!-- Custom Inputs -->
+        <div class="mb-6 grid grid-cols-3 gap-3 max-w-sm mx-auto">
+          <div>
+            <label class="mb-1 block text-center text-[11px] font-bold uppercase text-slate-400">Hours</label>
+            <input id="timerHoursInput" type="number" min="0" max="99" value="0" onchange="applyCustomTimerInputs()" class="font-mono-num w-full rounded-xl border border-slate-700 bg-slate-950 py-2 text-center text-base font-bold text-white focus:border-orange-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="mb-1 block text-center text-[11px] font-bold uppercase text-slate-400">Minutes</label>
+            <input id="timerMinsInput" type="number" min="0" max="59" value="5" onchange="applyCustomTimerInputs()" class="font-mono-num w-full rounded-xl border border-slate-700 bg-slate-950 py-2 text-center text-base font-bold text-white focus:border-orange-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="mb-1 block text-center text-[11px] font-bold uppercase text-slate-400">Seconds</label>
+            <input id="timerSecsInput" type="number" min="0" max="59" value="0" onchange="applyCustomTimerInputs()" class="font-mono-num w-full rounded-xl border border-slate-700 bg-slate-950 py-2 text-center text-base font-bold text-white focus:border-orange-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex items-center justify-center gap-3">
+          <button id="timerStartPauseBtn" type="button" onclick="toggleTimer()" class="rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-7 py-3 text-sm font-extrabold text-white shadow-lg shadow-orange-500/25 hover:brightness-110">
+            Start Timer
+          </button>
+          <button type="button" onclick="resetTimer()" class="rounded-2xl border border-slate-700 bg-slate-800 px-5 py-3 text-sm font-bold text-slate-200 hover:bg-slate-700">
+            Reset
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: STOPWATCH -->
+    <section id="view-stopwatch" class="clock-view hidden">
+      <div class="mx-auto max-w-2xl rounded-3xl border border-slate-800/90 bg-slate-900/80 p-6 sm:p-8 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-lg font-extrabold text-white uppercase tracking-wide">Precision Stopwatch</h2>
+            <p class="text-xs text-slate-400">Centisecond timing with instant lap split recording.</p>
+          </div>
+          <span class="rounded-full bg-orange-500/15 px-3 py-1 text-xs font-bold text-orange-300">1/100s</span>
+        </div>
+
+        <div class="my-8 flex items-baseline justify-center">
+          <span id="swMainDisplay" class="font-mono-num text-5xl sm:text-7xl font-extrabold tracking-tight text-white">00:00</span>
+          <span id="swMsDisplay" class="font-mono-num text-2xl sm:text-4xl font-bold text-orange-400">.00</span>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <button id="swStartStopBtn" type="button" onclick="toggleStopwatch()" class="rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-7 py-3 text-sm font-extrabold text-white shadow-lg shadow-emerald-500/20 hover:brightness-110">
+            Start
+          </button>
+          <button id="swLapBtn" type="button" onclick="recordStopwatchLap()" disabled="" class="rounded-2xl border border-slate-700 bg-slate-800 px-5 py-3 text-sm font-bold text-slate-300 disabled:opacity-40 hover:bg-slate-700">
+            Lap
+          </button>
+          <button type="button" onclick="resetStopwatch()" class="rounded-2xl border border-slate-700 bg-slate-800 px-5 py-3 text-sm font-bold text-slate-300 hover:bg-slate-700">
+            Reset
+          </button>
+        </div>
+
+        <!-- Lap Splits -->
+        <div id="swLapsContainer" class="hidden mt-6 border-t border-slate-800 pt-4">
+          <div class="mb-2 flex items-center justify-between text-xs font-bold uppercase text-slate-400">
+            <span>Recorded Laps</span>
+            <span id="swLapCount">0 Laps</span>
+          </div>
+          <div id="swLapsList" class="max-h-56 space-y-1.5 overflow-y-auto pr-1"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: WORLD TIMER -->
+    <section id="view-world" class="clock-view hidden space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-lg font-extrabold text-white uppercase tracking-wide">Global Competition Timezones</h2>
+          <p class="text-xs text-slate-400">Synchronized world clocks for international entries and live streams.</p>
+        </div>
+      </div>
+      <div id="worldClocksGrid" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+    </section>
+
+  </main>
+
+  <!-- ORGANIZER PIN UNLOCK MODAL -->
+  <div id="pinUnlockModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-md hidden">
+    <div class="w-full max-w-sm rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+          </span>
+          <div>
+            <h3 id="pinModalHeading" class="text-sm font-extrabold uppercase tracking-wider text-white">Organizer Access</h3>
+            <p id="pinModalSubtext" class="text-xs text-slate-400">Enter Organizer PIN to unlock controls</p>
+          </div>
+        </div>
+        <button type="button" onclick="closePinModal()" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <form onsubmit="submitPinModal(event)" class="mt-5 space-y-4">
+        <input id="pinModalInput" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off" class="font-mono-num w-full rounded-2xl border border-slate-700 bg-slate-950 py-3.5 text-center text-2xl font-extrabold tracking-[0.45em] text-white placeholder-slate-600 focus:border-orange-500 focus:outline-none">
+        <p id="pinModalError" class="hidden text-center text-xs font-bold text-rose-400">Incorrect PIN. Please try again.</p>
+
+        <button type="submit" class="w-full rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 py-3 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-orange-500/25 hover:brightness-110">
+          Unlock Organizer Mode
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- CLEAN HTML EXPORT MODAL (For GitHub Pages) -->
+  <div id="htmlExportModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-md hidden">
+    <div class="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-3xl border border-slate-800 bg-slate-900 p-5 sm:p-6 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-sm font-extrabold uppercase tracking-wider text-amber-400">Clean HTML for GitHub (index.html)</h3>
+          <p class="text-xs text-slate-400">Pure, verified code with your Firebase config embedded &amp; sandbox scripts stripped.</p>
+        </div>
+        <button type="button" onclick="closeHtmlExportModal()" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <textarea id="htmlExportTextarea" readonly="" class="font-mono-num mt-4 h-64 w-full flex-1 rounded-2xl border border-slate-700 bg-slate-950 p-3 text-[11px] leading-relaxed text-slate-300 focus:border-amber-500 focus:outline-none"></textarea>
+
+      <div id="htmlCopyFeedback" class="hidden mt-2 text-xs font-bold text-emerald-400">Copied clean HTML to clipboard! Paste into index.html on GitHub.</div>
+
+      <div class="mt-4 flex flex-wrap items-center justify-end gap-2.5">
+        <button type="button" onclick="selectAllExportHtml()" class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-700">
+          1. Select All Text
+        </button>
+        <button type="button" onclick="copyExportHtmlNow()" class="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-2.5 text-xs font-extrabold text-white shadow-lg hover:brightness-110">
+          2. Copy Code Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIMULATED TEST DEVICES MODAL -->
+  <div id="dummyDevicesModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-md">
+    <div class="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-3xl border border-slate-800 bg-slate-900 p-5 sm:p-6 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-sm font-extrabold uppercase tracking-wider text-sky-400">Live Multi-Device Sync Preview</h3>
+          <p class="text-xs text-slate-400">Shows exactly what athletes, coaches, and arena displays see right now.</p>
+        </div>
+        <button type="button" onclick="closeDummyDevicesModal()" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div id="dummyDevicesGrid" class="mt-4 grid grid-cols-1 gap-4 overflow-y-auto md:grid-cols-2"></div>
+    </div>
+  </div>
+
+  <!-- INSTALL APP INSTRUCTIONS MODAL -->
+  <div id="installInfoModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-md">
+    <div class="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-extrabold text-white">Install EventClock on Your Device</h3>
+        <button type="button" onclick="closeInstallModal()" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="mt-4 space-y-3 text-xs leading-relaxed text-slate-300">
+        <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-3.5">
+          <p class="font-extrabold text-orange-400 uppercase mb-1">iPhone / iPad (Safari)</p>
+          <p>Tap the <strong>Share</strong> icon at the bottom of Safari, scroll down, and tap <strong>Add to Home Screen</strong>.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-3.5">
+          <p class="font-extrabold text-emerald-400 uppercase mb-1">Android / Desktop Chrome</p>
+          <p>Tap the browser menu (<strong>⋮</strong>) in the top-right corner and select <strong>Install App</strong> or <strong>Add to Home screen</strong>.</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeInstallModal()" class="mt-5 w-full rounded-2xl bg-slate-800 py-2.5 text-xs font-extrabold text-white hover:bg-slate-700">
+        Got It
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. HARDCODED FIREBASE CONFIGURATION (eventclock-live-17f8b)
+    // =========================================================================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyBnefDQK-5mMODdEhE8PCujUjP5C4WQikU",
+      authDomain: "eventclock-live-17f8b.firebaseapp.com",
+      projectId: "eventclock-live-17f8b",
+      storageBucket: "eventclock-live-17f8b.firebasestorage.app",
+      messagingSenderId: "622654534528",
+      appId: "1:622654534528:web:df303b8a8ad4b862ff4765"
+    };
+
+    const BOARD_COLLECTION = "eventclock_boards";
+    const BOARD_DOC_ID = "main_board";
+    const LOCAL_STORAGE_KEY = "eventclock_board_cache_v2";
+    const LOCAL_PIN_KEY = "eventclock_organizer_pin_v2";
+
+    // =========================================================================
+    // 2. APPLICATION STATE
+    // =========================================================================
+    let db = null;
+    let isFirebaseConnected = false;
+    let isOrganizerUnlocked = false;
+    let pinModalPurpose = "organizer"; // 'organizer' | 'exitKiosk'
+    let soundEnabled = true;
+    let deferredInstallPrompt = null;
+    let lastKnownAnnouncementId = null;
+    let announcedMilestones = new Set();
+
+    let boardState = {
+      title: "EVENTCLOCK",
+      subtitle: "Live Competition Countdown & Venue Board",
+      organizerPin: "1234",
+      kioskPinRequired: false,
+      competitions: [],
+      announcement: null,
+      updatedAt: 0
+    };
+
+    // Timer & Stopwatch State
+    let timerTotalSeconds = 300;
+    let timerRemainingSeconds = 300;
+    let timerInterval = null;
+    let timerRunning = false;
+
+    let swElapsedMs = 0;
+    let swLastTick = 0;
+    let swInterval = null;
+    let swRunning = false;
+    let swLaps = [];
+
+    // =========================================================================
+    // 3. INITIALIZATION & FIREBASE REALTIME SYNC
+    // =========================================================================
+    document.addEventListener("DOMContentLoaded", () => {
+      loadLocalCache();
+      renderAllViews();
+      initFirebaseRealtime();
+      startMainClockLoop();
+      renderWorldClocks();
+    });
+
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+    });
+
+    function loadLocalCache() {
+      try {
+        const savedPin = localStorage.getItem(LOCAL_PIN_KEY);
+        if (savedPin && /^\d{4,8}$/.test(savedPin)) {
+          boardState.organizerPin = savedPin;
+        }
+        const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") {
+            boardState = {
+              ...boardState,
+              ...parsed,
+              competitions: Array.isArray(parsed.competitions) ? parsed.competitions : []
+            };
+          }
+        }
+      } catch (err) {
+        console.warn("Cache read skipped:", err);
+      }
+    }
+
+    function saveLocalCache() {
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(boardState));
+        if (boardState.organizerPin) {
+          localStorage.setItem(LOCAL_PIN_KEY, boardState.organizerPin);
+        }
+      } catch (err) {
+        console.warn("Cache write skipped:", err);
+      }
+    }
+
+    function initFirebaseRealtime() {
+      try {
+        if (typeof firebase === "undefined") {
+          setConnectionStatus(false, "Offline Mode (Local)");
+          return;
+        }
+        if (!firebase.apps.length) {
+          firebase.initializeApp(FIREBASE_CONFIG);
+        }
+        db = firebase.firestore();
+
+        db.collection(BOARD_COLLECTION)
+          .doc(BOARD_DOC_ID)
+          .onSnapshot(
+            (docSnap) => {
+              setConnectionStatus(true, "LIVE SYNC");
+              if (docSnap.exists) {
+                const data = docSnap.data() || {};
+                const incomingComps = Array.isArray(data.competitions) ? data.competitions : [];
+                const syncedPin =
+                  typeof data.organizerPin === "string" && /^\d{4,8}$/.test(data.organizerPin)
+                    ? data.organizerPin
+                    : boardState.organizerPin || "1234";
+
+                boardState = {
+                  title: data.title || "EVENTCLOCK",
+                  subtitle: data.subtitle || "Live Competition Countdown & Venue Board",
+                  organizerPin: syncedPin,
+                  kioskPinRequired: Boolean(data.kioskPinRequired),
+                  competitions: incomingComps,
+                  announcement: data.announcement || null,
+                  updatedAt: data.updatedAt || Date.now()
+                };
+
+                saveLocalCache();
+                syncHeaderAndSettingsUI();
+                renderAllViews();
+
+                // Show live alert banner if a new announcement arrived
+                if (
+                  boardState.announcement &&
+                  boardState.announcement.id &&
+                  boardState.announcement.id !== lastKnownAnnouncementId
+                ) {
+                  const ageMs = Date.now() - (boardState.announcement.timestamp || 0);
+                  lastKnownAnnouncementId = boardState.announcement.id;
+                  if (ageMs < 60000) {
+                    showAnnouncement(
+                      boardState.announcement.title || "LIVE BOARD UPDATE",
+                      boardState.announcement.message || "Competition schedule updated."
+                    );
+                    playChime("alert");
+                  }
+                }
+              } else {
+                // Initialize document gently without overwriting if empty
+                syncHeaderAndSettingsUI();
+                renderAllViews();
+              }
+            },
+            (error) => {
+              console.error("Firestore listener error:", error);
+              setConnectionStatus(false, "Local Backup");
+            }
+          );
+      } catch (err) {
+        console.error("Firebase init failed:", err);
+        setConnectionStatus(false, "Local Backup");
+      }
+    }
+
+    function setConnectionStatus(connected, label) {
+      isFirebaseConnected = connected;
+      const badge = document.getElementById("liveStatusBadge");
+      const dot = document.getElementById("liveStatusDot");
+      const text = document.getElementById("liveStatusText");
+      const fbBanner = document.getElementById("firebaseStatusBanner");
+      const fbBannerDot = document.getElementById("fbBannerDot");
+      const fbBannerText = document.getElementById("fbBannerText");
+
+      if (text) text.textContent = label;
+
+      if (connected) {
+        badge.className =
+          "inline-flex items-center gap-1.5 rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300";
+        dot.className = "h-2 w-2 rounded-full bg-emerald-400 pulse-glow";
+        if (fbBanner) {
+          fbBanner.className =
+            "mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-3 text-xs";
+          fbBannerDot.className = "h-2.5 w-2.5 rounded-full bg-emerald-400";
+          fbBannerText.className = "font-bold text-emerald-300";
+          fbBannerText.textContent =
+            "Connected to Firebase (eventclock-live-17f8b) — Live Push to All Devices Active";
+        }
+      } else {
+        badge.className =
+          "inline-flex items-center gap-1.5 rounded-full border border-amber-500/35 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-300";
+        dot.className = "h-2 w-2 rounded-full bg-amber-400";
+        if (fbBanner) {
+          fbBanner.className =
+            "mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-xs";
+          fbBannerDot.className = "h-2.5 w-2.5 rounded-full bg-amber-400";
+          fbBannerText.className = "font-bold text-amber-300";
+          fbBannerText.textContent = "Offline / Local Storage Mode — Will auto-sync when online";
+        }
+      }
+    }
+
+    async function pushBoardStateToCloud(customAnnouncement = null) {
+      boardState.updatedAt = Date.now();
+      if (customAnnouncement) {
+        boardState.announcement = customAnnouncement;
+        lastKnownAnnouncementId = customAnnouncement.id;
+      }
+      saveLocalCache();
+      renderAllViews();
+
+      if (db) {
+        try {
+          await db.collection(BOARD_COLLECTION).doc(BOARD_DOC_ID).set(boardState, { merge: true });
+          return true;
+        } catch (err) {
+          console.error("Cloud push error:", err);
+          return false;
+        }
+      }
+      return false;
+    }
+
+    // =========================================================================
+    // 4. MULTI-EVENT CLOCK ENGINE & MILESTONE ROLLOVER
+    // =========================================================================
+    function startMainClockLoop() {
+      updateAllCountdownsTick();
+      setInterval(() => {
+        updateAllCountdownsTick();
+        updateWorldClocksTick();
+      }, 1000);
+    }
+
+    function getCompetitionMilestoneInfo(comp, nowMs) {
+      const milestones = [];
+      if (comp.singleEntryDate) {
+        const ts = new Date(comp.singleEntryDate).getTime();
+        if (!isNaN(ts)) milestones.push({ key: "single", label: "Single Entry Fees", ts, color: "emerald" });
+      }
+      if (comp.doubleEntryDate) {
+        const ts = new Date(comp.doubleEntryDate).getTime();
+        if (!isNaN(ts)) milestones.push({ key: "double", label: "Double / Triple Entry", ts, color: "amber" });
+      }
+      if (comp.compDate) {
+        const ts = new Date(comp.compDate).getTime();
+        if (!isNaN(ts)) milestones.push({ key: "comp", label: "Competition Starts", ts, color: "orange" });
+      }
+
+      milestones.sort((a, b) => a.ts - b.ts);
+
+      // Find the next upcoming milestone
+      const activeMilestone = milestones.find((m) => m.ts > nowMs) || null;
+
+      // Trigger automatic transition alert if a milestone just passed within the last 3 seconds
+      milestones.forEach((m) => {
+        const diff = nowMs - m.ts;
+        const uniqueKey = `${comp.id}_${m.key}`;
+        if (diff >= 0 && diff < 3500 && !announcedMilestones.has(uniqueKey)) {
+          announcedMilestones.add(uniqueKey);
+          const nextM = milestones.find((x) => x.ts > nowMs);
+          if (nextM) {
+            showAnnouncement(
+              `${comp.name} — PHASE SHIFT`,
+              `${m.label} closed! Now counting down to ${nextM.label}.`
+            );
+          } else {
+            showAnnouncement(
+              `${comp.name} — DEADLINE REACHED`,
+              `All scheduled deadlines for ${comp.name} have concluded.`
+            );
+          }
+          playChime("milestone");
+        }
+      });
+
+      return { milestones, activeMilestone };
+    }
+
+    function formatTimeParts(diffMs) {
+      if (diffMs <= 0) {
+        return { days: "00", hours: "00", mins: "00", secs: "00" };
+      }
+      const totalSec = Math.floor(diffMs / 1000);
+      const days = Math.floor(totalSec / 86400);
+      const hours = Math.floor((totalSec % 86400) / 3600);
+      const mins = Math.floor((totalSec % 3600) / 60);
+      const secs = totalSec % 60;
+      return {
+        days: String(days).padStart(2, "0"),
+        hours: String(hours).padStart(2, "0"),
+        mins: String(mins).padStart(2, "0"),
+        secs: String(secs).padStart(2, "0")
+      };
+    }
+
+    function formatHumanDate(isoStr) {
+      if (!isoStr) return "";
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return isoStr;
+      return d.toLocaleString([], {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function renderAllViews() {
+      syncHeaderAndSettingsUI();
+      renderMultiEventBoards();
+      renderManageCompetitionsList();
+      if (!document.getElementById("dummyDevicesModal").classList.contains("hidden")) {
+        renderDummyDevices();
+      }
+    }
+
+    function syncHeaderAndSettingsUI() {
+      const titleEl = document.getElementById("headerBrandTitle");
+      const subEl = document.getElementById("headerBrandSubtitle");
+      if (titleEl) titleEl.textContent = boardState.title || "EVENTCLOCK";
+      if (subEl) subEl.textContent = boardState.subtitle || "Live Competition Countdown & Venue Board";
+
+      const sTitle = document.getElementById("settingsTitleInput");
+      const sSub = document.getElementById("settingsSubtitleInput");
+      const sKiosk = document.getElementById("settingsKioskPinToggle");
+      if (sTitle && document.activeElement !== sTitle) sTitle.value = boardState.title || "EVENTCLOCK";
+      if (sSub && document.activeElement !== sSub) sSub.value = boardState.subtitle || "";
+      if (sKiosk) sKiosk.checked = Boolean(boardState.kioskPinRequired);
+
+      const badge = document.getElementById("manageCountBadge");
+      if (badge) badge.textContent = String(boardState.competitions.length);
+    }
+
+    function renderMultiEventBoards() {
+      const container = document.getElementById("multiEventClocksContainer");
+      const countPill = document.getElementById("activeClocksCountPill");
+      const countText = document.getElementById("activeClocksCountText");
+      if (!container) return;
+
+      const comps = boardState.competitions || [];
+
+      if (comps.length === 0) {
+        if (countPill) countPill.classList.add("hidden");
+        container.className = "grid grid-cols-1 gap-6";
+        container.innerHTML = `
+          <div class="flex min-h-[58vh] flex-col items-center justify-center rounded-3xl border border-slate-800/70 bg-slate-950/50 px-6 py-16 text-center shadow-inner">
+            <div class="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/90 text-amber-500/90 shadow-lg">
+              <svg class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="13" r="8" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4l2.5 2.5M9 2h6M12 2v3" />
+              </svg>
+            </div>
+
+            <div class="standby-pill-blink mb-5 inline-flex items-center gap-2 rounded-full border border-slate-700/90 bg-slate-900/95 px-4 py-1.5">
+              <span class="h-2.5 w-2.5 rounded-full bg-amber-400"></span>
+              <span class="text-xs font-extrabold tracking-[0.18em] text-slate-200 uppercase">STANDBY MODE</span>
+            </div>
+
+            <h2 class="max-w-3xl text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-white uppercase">
+              WAITING FOR THE NEXT COMPETITION...
+            </h2>
+
+            <p class="mt-4 max-w-xl text-sm sm:text-base font-medium leading-relaxed text-slate-400">
+              This display is connected live. As soon as the organizer publishes a competition schedule, the countdown board will appear automatically.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      // Show count pill when 1+ competitions are live
+      if (countPill && countText) {
+        countPill.classList.remove("hidden");
+        countText.textContent =
+          comps.length === 1 ? "1 LIVE EVENT CLOCK" : `${comps.length} LIVE EVENT CLOCKS`;
+      }
+
+      // Side-by-side grid on large screens when 2 or more clocks are active
+      container.className =
+        comps.length === 1
+          ? "grid grid-cols-1 gap-6"
+          : "grid grid-cols-1 gap-6 lg:grid-cols-2";
+
+      const nowMs = Date.now();
+
+      container.innerHTML = comps
+        .map((comp, index) => {
+          const { milestones, activeMilestone } = getCompetitionMilestoneInfo(comp, nowMs);
+          const diffMs = activeMilestone ? Math.max(0, activeMilestone.ts - nowMs) : 0;
+          const parts = formatTimeParts(diffMs);
+
+          const statusBannerHtml = activeMilestone
+            ? `
+              <div class="inline-flex items-center gap-2 rounded-full border border-orange-500/35 bg-orange-500/15 px-3 py-1 text-[11px] font-extrabold tracking-wider text-orange-300 uppercase">
+                <span class="h-2 w-2 rounded-full bg-orange-400 pulse-glow"></span>
+                <span>Counting Down: ${escapeHtml(activeMilestone.label)}</span>
+              </div>
+            `
+            : milestones.length > 0
+            ? `
+              <div class="inline-flex items-center gap-2 rounded-full border border-rose-500/35 bg-rose-500/15 px-3 py-1 text-[11px] font-extrabold tracking-wider text-rose-300 uppercase">
+                <span>Entries Closed / Event Concluded</span>
+              </div>
+            `
+            : `
+              <div class="inline-flex items-center gap-2 rounded-full border border-sky-500/35 bg-sky-500/15 px-3 py-1 text-[11px] font-extrabold tracking-wider text-sky-300 uppercase">
+                <span>Schedule Announced &bull; Dates TBA</span>
+              </div>
+            `;
+
+          const milestonesHtml =
+            milestones.length > 0
+              ? `
+              <div class="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-${Math.min(milestones.length, 3)}">
+                ${milestones
+                  .map((m) => {
+                    const isCurrent = activeMilestone && activeMilestone.key === m.key;
+                    const isPassed = m.ts <= nowMs;
+                    const cardStyle = isCurrent
+                      ? "border-orange-500/60 bg-orange-500/10 shadow-md shadow-orange-950/20"
+                      : isPassed
+                      ? "border-slate-800/70 bg-slate-950/40 opacity-55"
+                      : "border-slate-800 bg-slate-950/70";
+                    const tagHtml = isCurrent
+                      ? `<span class="rounded bg-orange-500 px-1.5 py-0.5 text-[10px] font-extrabold text-white">ACTIVE</span>`
+                      : isPassed
+                      ? `<span class="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-bold text-slate-400">PASSED</span>`
+                      : `<span class="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-bold text-sky-300">NEXT</span>`;
+
+                    return `
+                      <div class="rounded-2xl border ${cardStyle} p-3">
+                        <div class="flex items-center justify-between gap-1">
+                          <span class="text-[11px] font-extrabold uppercase tracking-wide text-slate-300">${escapeHtml(m.label)}</span>
+                          ${tagHtml}
+                        </div>
+                        <p class="mt-1.5 text-xs font-bold text-white">${escapeHtml(formatHumanDate(new Date(m.ts).toISOString()))}</p>
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            `
+              : "";
+
+          const regLinkHtml = comp.url
+            ? `
+              <a href="${escapeHtml(comp.url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 rounded-xl border border-orange-500/40 bg-orange-500/15 px-3 py-1.5 text-xs font-extrabold text-orange-300 transition hover:bg-orange-500/25">
+                <span>Register / Info</span>
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14 3h7v7m0-7L10 14M5 5v14h14v-7" />
+                </svg>
+              </a>
+            `
+            : "";
+
+          return `
+            <article data-comp-card="${escapeHtml(comp.id)}" class="rounded-3xl border border-slate-800/90 bg-slate-900/85 p-5 sm:p-7 shadow-2xl backdrop-blur">
+              <!-- Card Top Metadata -->
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="rounded-lg bg-slate-800 px-2.5 py-1 font-mono-num text-[11px] font-extrabold text-slate-300">
+                  CLOCK #${index + 1}
+                </span>
+                ${statusBannerHtml}
+              </div>
+
+              <!-- Competition Title & Venue -->
+              <div class="mt-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 class="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white uppercase">
+                    ${escapeHtml(comp.name)}
+                  </h2>
+                  ${
+                    comp.venue
+                      ? `<p class="mt-1 flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-400">
+                          <svg class="h-4 w-4 text-orange-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <circle cx="12" cy="11" r="3" />
+                          </svg>
+                          <span>${escapeHtml(comp.venue)}</span>
+                        </p>`
+                      : ""
+                  }
+                </div>
+                ${regLinkHtml}
+              </div>
+
+              <!-- Split-Flap (Flip-Flop) Countdown Board -->
+              <div class="mt-6 grid grid-cols-4 gap-2.5 sm:gap-4">
+                <div class="flap-card flex flex-col items-center justify-center py-3.5 sm:py-5">
+                  <span data-unit="days" class="font-mono-num text-3xl sm:text-5xl font-extrabold tracking-tight text-white">${parts.days}</span>
+                  <span class="mt-1.5 text-[10px] sm:text-xs font-extrabold tracking-[0.2em] text-slate-400 uppercase">DAYS</span>
+                </div>
+                <div class="flap-card flex flex-col items-center justify-center py-3.5 sm:py-5">
+                  <span data-unit="hours" class="font-mono-num text-3xl sm:text-5xl font-extrabold tracking-tight text-white">${parts.hours}</span>
+                  <span class="mt-1.5 text-[10px] sm:text-xs font-extrabold tracking-[0.2em] text-slate-400 uppercase">HOURS</span>
+                </div>
+                <div class="flap-card flex flex-col items-center justify-center py-3.5 sm:py-5">
+                  <span data-unit="mins" class="font-mono-num text-3xl sm:text-5xl font-extrabold tracking-tight text-white">${parts.mins}</span>
+                  <span class="mt-1.5 text-[10px] sm:text-xs font-extrabold tracking-[0.2em] text-slate-400 uppercase">MINS</span>
+                </div>
+                <div class="flap-card flex flex-col items-center justify-center py-3.5 sm:py-5 border-orange-500/30">
+                  <span data-unit="secs" class="font-mono-num text-3xl sm:text-5xl font-extrabold tracking-tight text-orange-400">${parts.secs}</span>
+                  <span class="mt-1.5 text-[10px] sm:text-xs font-extrabold tracking-[0.2em] text-orange-300/80 uppercase">SECS</span>
+                </div>
+              </div>
+
+              <!-- Milestone Cards -->
+              ${milestonesHtml}
+            </article>
+          `;
+        })
+        .join("");
+    }
+
+    function updateAllCountdownsTick() {
+      const now = new Date();
+      const venueClockEl = document.getElementById("venueLiveNowClock");
+      if (venueClockEl) {
+        venueClockEl.textContent = now.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        });
+      }
+
+      const comps = boardState.competitions || [];
+      if (comps.length === 0) return;
+
+      const nowMs = now.getTime();
+      let needsFullRerender = false;
+
+      comps.forEach((comp) => {
+        const cardEl = document.querySelector(`[data-comp-card="${CSS.escape(comp.id)}"]`);
+        if (!cardEl) {
+          needsFullRerender = true;
+          return;
+        }
+        const { activeMilestone } = getCompetitionMilestoneInfo(comp, nowMs);
+        const diffMs = activeMilestone ? Math.max(0, activeMilestone.ts - nowMs) : 0;
+        const parts = formatTimeParts(diffMs);
+
+        const dEl = cardEl.querySelector('[data-unit="days"]');
+        const hEl = cardEl.querySelector('[data-unit="hours"]');
+        const mEl = cardEl.querySelector('[data-unit="mins"]');
+        const sEl = cardEl.querySelector('[data-unit="secs"]');
+
+        if (dEl && dEl.textContent !== parts.days) dEl.textContent = parts.days;
+        if (hEl && hEl.textContent !== parts.hours) hEl.textContent = parts.hours;
+        if (mEl && mEl.textContent !== parts.mins) mEl.textContent = parts.mins;
+        if (sEl && sEl.textContent !== parts.secs) sEl.textContent = parts.secs;
+
+        if (activeMilestone && activeMilestone.ts - nowMs <= 1000) {
+          needsFullRerender = true;
+        }
+      });
+
+      if (needsFullRerender) {
+        renderMultiEventBoards();
+      }
+    }
+
+    // =========================================================================
+    // 5. ORGANIZER CRUD (ADD / EDIT / DELETE WITHOUT OVERWRITING OTHERS)
+    // =========================================================================
+    function switchOrganizerTab(tabName) {
+      document.querySelectorAll(".org-tab-btn").forEach((btn) => {
+        const isActive = btn.dataset.orgtab === tabName;
+        btn.className = isActive
+          ? "org-tab-btn rounded-xl bg-orange-500 px-3.5 py-2 text-xs font-extrabold text-white"
+          : "org-tab-btn rounded-xl bg-slate-800/80 px-3.5 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800";
+      });
+
+      ["competitions", "manage"].forEach((t) => {
+        const panel = document.getElementById(`orgTab-${t}`);
+        if (panel) panel.classList.toggle("hidden", t !== tabName);
+      });
+    }
+
+    function clearDateField(inputId) {
+      const el = document.getElementById(inputId);
+      if (el) el.value = "";
+    }
+
+    function resetCompetitionForm() {
+      document.getElementById("editingCompId").value = "";
+      document.getElementById("compNameInput").value = "";
+      document.getElementById("compVenueInput").value = "";
+      document.getElementById("singleEntryInput").value = "";
+      document.getElementById("doubleEntryInput").value = "";
+      document.getElementById("compDateInput").value = "";
+      document.getElementById("compUrlInput").value = "";
+      document.getElementById("formModeHeading").textContent = "Add New Competition Clock";
+      document.getElementById("publishPrimaryBtnLabel").textContent = "Push Now & Alert All Devices";
+      document.getElementById("cancelEditBtn").classList.add("hidden");
+      const fb = document.getElementById("orgFormFeedback");
+      if (fb) fb.classList.add("hidden");
+    }
+
+    function showOrgFormFeedback(message, isError = false) {
+      const fb = document.getElementById("orgFormFeedback");
+      if (!fb) return;
+      fb.textContent = message;
+      fb.className = isError
+        ? "rounded-xl border border-rose-500/40 bg-rose-500/15 px-3.5 py-2.5 text-xs font-bold text-rose-300"
+        : "rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-2.5 text-xs font-bold text-emerald-300";
+      fb.classList.remove("hidden");
+      setTimeout(() => fb.classList.add("hidden"), 4000);
+    }
+
+    async function publishCompetition(sendAlert) {
+      const name = document.getElementById("compNameInput").value.trim();
+      if (!name) {
+        showOrgFormFeedback("Please enter a Competition Name.", true);
+        return;
+      }
+
+      const venue = document.getElementById("compVenueInput").value.trim();
+      const singleEntryDate = document.getElementById("singleEntryInput").value;
+      const doubleEntryDate = document.getElementById("doubleEntryInput").value;
+      const compDate = document.getElementById("compDateInput").value;
+      const url = document.getElementById("compUrlInput").value.trim();
+      const editingId = document.getElementById("editingCompId").value;
+
+      const comps = Array.isArray(boardState.competitions) ? [...boardState.competitions] : [];
+
+      if (editingId) {
+        const idx = comps.findIndex((c) => c.id === editingId);
+        if (idx !== -1) {
+          comps[idx] = {
+            ...comps[idx],
+            name,
+            venue,
+            singleEntryDate,
+            doubleEntryDate,
+            compDate,
+            url,
+            updatedAt: Date.now()
+          };
+        }
+      } else {
+        comps.push({
+          id: "comp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+          name,
+          venue,
+          singleEntryDate,
+          doubleEntryDate,
+          compDate,
+          url,
+          createdAt: Date.now()
+        });
+      }
+
+      boardState.competitions = comps;
+
+      const announcement = sendAlert
+        ? {
+            id: "ann_" + Date.now(),
+            title: editingId ? "COMPETITION SCHEDULE UPDATED" : "NEW COMPETITION LIVE",
+            message: `${name}${venue ? " • " + venue : ""} is now live on the board!`,
+            timestamp: Date.now()
+          }
+        : null;
+
+      await pushBoardStateToCloud(announcement);
+
+      if (sendAlert && announcement) {
+        showAnnouncement(announcement.title, announcement.message);
+        playChime();
+      }
+
+      resetCompetitionForm();
+      showOrgFormFeedback(
+        editingId
+          ? "Competition updated and synced live to all devices!"
+          : "Competition clock added and pushed live to all devices!"
+      );
+    }
+
+    function editCompetition(compId) {
+      const comp = (boardState.competitions || []).find((c) => c.id === compId);
+      if (!comp) return;
+
+      switchOrganizerTab("competitions");
+      document.getElementById("editingCompId").value = comp.id;
+      document.getElementById("compNameInput").value = comp.name || "";
+      document.getElementById("compVenueInput").value = comp.venue || "";
+      document.getElementById("singleEntryInput").value = comp.singleEntryDate || "";
+      document.getElementById("doubleEntryInput").value = comp.doubleEntryDate || "";
+      document.getElementById("compDateInput").value = comp.compDate || "";
+      document.getElementById("compUrlInput").value = comp.url || "";
+      document.getElementById("formModeHeading").textContent = `Editing: ${comp.name}`;
+      document.getElementById("publishPrimaryBtnLabel").textContent = "Update & Alert All Devices";
+      document.getElementById("cancelEditBtn").classList.remove("hidden");
+    }
+
+    async function deleteSingleCompetition(compId) {
+      boardState.competitions = (boardState.competitions || []).filter((c) => c.id !== compId);
+      if (document.getElementById("editingCompId").value === compId) {
+        resetCompetitionForm();
+      }
+      await pushBoardStateToCloud(null);
+    }
+
+    function confirmClearAllCompetitions() {
+      const bar = document.getElementById("clearAllConfirmBar");
+      if (bar) {
+        bar.classList.remove("hidden");
+        bar.classList.add("flex");
+      }
+    }
+
+    function hideClearAllConfirm() {
+      const bar = document.getElementById("clearAllConfirmBar");
+      if (bar) {
+        bar.classList.add("hidden");
+        bar.classList.remove("flex");
+      }
+    }
+
+    async function executeClearAllCompetitions() {
+      hideClearAllConfirm();
+      boardState.competitions = [];
+      resetCompetitionForm();
+      await pushBoardStateToCloud(null);
+    }
+
+    function renderManageCompetitionsList() {
+      const listEl = document.getElementById("manageCompetitionsList");
+      if (!listEl) return;
+
+      const comps = boardState.competitions || [];
+      if (comps.length === 0) {
+        listEl.innerHTML = `
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-5 text-center text-xs text-slate-400">
+            No competitions currently active. The public board is in Standby Mode.
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = comps
+        .map(
+          (c, i) => `
+          <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/75 px-4 py-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="rounded bg-orange-500/20 px-2 py-0.5 font-mono-num text-[11px] font-extrabold text-orange-300">#${i + 1}</span>
+                <p class="truncate text-sm font-extrabold text-white">${escapeHtml(c.name)}</p>
+              </div>
+              <p class="mt-0.5 truncate text-xs text-slate-400">
+                ${c.venue ? escapeHtml(c.venue) + " • " : ""}
+                ${c.compDate ? "Event: " + escapeHtml(formatHumanDate(c.compDate)) : "Dates configurable"}
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="editCompetition('${escapeHtml(c.id)}')" class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-slate-700">
+                Edit
+              </button>
+              <button type="button" onclick="deleteSingleCompetition('${escapeHtml(c.id)}')" class="rounded-xl border border-rose-500/35 bg-rose-500/15 px-3 py-1.5 text-xs font-bold text-rose-300 hover:bg-rose-500/25">
+                Remove
+              </button>
+            </div>
+          </div>
+        `
+        )
+        .join("");
+    }
+    function togglePinResetSection() {
+      const drawer = document.getElementById("pinResetDrawer");
+      const chevron = document.getElementById("pinResetChevron");
+      if (!drawer) return;
+      const isHidden = drawer.classList.contains("hidden");
+      drawer.classList.toggle("hidden", !isHidden);
+      if (chevron) {
+        chevron.innerHTML = isHidden ? "Hide &#9652;" : "Show &#9662;";
+      }
+    }
+
+    function confirmResetPinToDefault() {
+      const bar = document.getElementById("resetPinConfirmBar");
+      if (bar) {
+        bar.classList.remove("hidden");
+        bar.classList.add("flex");
+      }
+    }
+
+    function hideResetPinConfirm() {
+      const bar = document.getElementById("resetPinConfirmBar");
+      if (bar) {
+        bar.classList.add("hidden");
+        bar.classList.remove("flex");
+      }
+    }
+
+    async function executeResetPinToDefault() {
+      hideResetPinConfirm();
+      boardState.organizerPin = "1234";
+      const pinInput = document.getElementById("settingsPinInput");
+      if (pinInput) pinInput.value = "";
+      await pushBoardStateToCloud(null);
+
+      const fb = document.getElementById("settingsFeedback");
+      if (fb) {
+        fb.textContent = "Organizer PIN has been reset to 1234 across all devices.";
+        fb.className = "rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-2 text-xs font-bold text-emerald-300";
+        fb.classList.remove("hidden");
+        setTimeout(() => fb.classList.add("hidden"), 4000);
+      }
+    }
+
+    async function saveNewOrganizerPin() {
+      const pinInput = document.getElementById("settingsPinInput");
+      const newPin = pinInput ? pinInput.value.trim() : "";
+      const fb = document.getElementById("settingsFeedback");
+
+      if (!/^\d{4,8}$/.test(newPin)) {
+        if (fb) {
+          fb.textContent = "PIN must be 4 to 8 digits (numbers only).";
+          fb.className = "rounded-xl border border-rose-500/40 bg-rose-500/15 px-3.5 py-2 text-xs font-bold text-rose-300";
+          fb.classList.remove("hidden");
+        }
+        return;
+      }
+
+      boardState.organizerPin = newPin;
+      if (pinInput) pinInput.value = "";
+      await pushBoardStateToCloud(null);
+
+      if (fb) {
+        fb.textContent = "New Organizer PIN saved and synced across all devices!";
+        fb.className = "rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-2 text-xs font-bold text-emerald-300";
+        fb.classList.remove("hidden");
+        setTimeout(() => fb.classList.add("hidden"), 4000);
+      }
+    }
+
+    async function saveBoardSettings() {
+      const newTitle = document.getElementById("settingsTitleInput").value.trim() || "EVENTCLOCK";
+      const newSub = document.getElementById("settingsSubtitleInput").value.trim();
+      const newPin = document.getElementById("settingsPinInput").value.trim();
+      const kioskLock = document.getElementById("settingsKioskPinToggle").checked;
+      const fb = document.getElementById("settingsFeedback");
+
+      if (newPin && !/^\d{4,8}$/.test(newPin)) {
+        fb.textContent = "PIN must be 4 to 8 digits (numbers only).";
+        fb.className = "rounded-xl border border-rose-500/40 bg-rose-500/15 px-3.5 py-2.5 text-xs font-bold text-rose-300";
+        fb.classList.remove("hidden");
+        return;
+      }
+
+      boardState.title = newTitle;
+      boardState.subtitle = newSub;
+      boardState.kioskPinRequired = kioskLock;
+      if (newPin) {
+        boardState.organizerPin = newPin;
+        document.getElementById("settingsPinInput").value = "";
+      }
+
+      await pushBoardStateToCloud(null);
+
+      fb.textContent = newPin
+        ? "Settings & new Organizer PIN saved and synced across all devices!"
+        : "Board settings saved and synced across all devices!";
+      fb.className = "rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-2.5 text-xs font-bold text-emerald-300";
+      fb.classList.remove("hidden");
+      setTimeout(() => fb.classList.add("hidden"), 4000);
+    }
+
+    // =========================================================================
+    // 6. SECRET TRIPLE-TAP & ORGANIZER PIN UNLOCK
+    // =========================================================================
+    let tapCount = 0;
+    let tapResetTimer = null;
+
+    function handleSecretTap() {
+      tapCount++;
+      clearTimeout(tapResetTimer);
+      tapResetTimer = setTimeout(() => {
+        tapCount = 0;
+      }, 900);
+
+      if (tapCount >= 3) {
+        tapCount = 0;
+        if (isOrganizerUnlocked) {
+          const panel = document.getElementById("organizerPanel");
+          panel.scrollIntoView({ behavior: "smooth" });
+        } else {
+          openPinModal("organizer");
+        }
+      }
+    }
+
+    function openPinModal(purpose) {
+      pinModalPurpose = purpose;
+      const modal = document.getElementById("pinUnlockModal");
+      const input = document.getElementById("pinModalInput");
+      const err = document.getElementById("pinModalError");
+      const heading = document.getElementById("pinModalHeading");
+      const subtext = document.getElementById("pinModalSubtext");
+
+      heading.textContent = purpose === "exitKiosk" ? "Exit Stage Display" : "Organizer Access";
+      subtext.textContent =
+        purpose === "exitKiosk"
+          ? "Enter Organizer PIN to exit full-screen kiosk display"
+          : "Enter Organizer PIN to unlock controls";
+
+      err.classList.add("hidden");
+      input.value = "";
+      modal.classList.remove("hidden");
+      setTimeout(() => input.focus(), 60);
+    }
+
+    function closePinModal() {
+      document.getElementById("pinUnlockModal").classList.add("hidden");
+    }
+
+    function submitPinModal(e) {
+      e.preventDefault();
+      const entered = document.getElementById("pinModalInput").value.trim();
+      const activePin = boardState.organizerPin || "1234";
+
+      if (entered === activePin) {
+        closePinModal();
+        if (pinModalPurpose === "exitKiosk") {
+          exitKioskMode();
+        } else {
+          isOrganizerUnlocked = true;
+          document.getElementById("organizerPanel").classList.remove("hidden");
+          syncHeaderAndSettingsUI();
+        }
+      } else {
+        document.getElementById("pinModalError").classList.remove("hidden");
+        document.getElementById("pinModalInput").select();
+      }
+    }
+
+    function lockOrganizerMode() {
+      isOrganizerUnlocked = false;
+      const drawer = document.getElementById("pinResetDrawer");
+      const chevron = document.getElementById("pinResetChevron");
+      if (drawer) drawer.classList.add("hidden");
+      if (chevron) chevron.innerHTML = "Show &#9662;";
+      hideResetPinConfirm();
+      document.getElementById("organizerPanel").classList.add("hidden");
+    }
+
+    // =========================================================================
+    // 7. CLEAN HTML EXPORT FOR GITHUB (STRIPS ANY SANDBOX INJECTED SCRIPTS)
+    // =========================================================================
+    function sanitizeRawHtmlString(rawHtml) {
+      let cleaned = String(rawHtml || "");
+      cleaned = cleaned.replace(/^```html\s*/i, "").replace(/```\s*$/i, "");
+      cleaned = cleaned.replace(/<script[^>]*data-bard-client-injected[^>]*>[\s\S]*?<\/script>/gi, "");
+      cleaned = cleaned.replace(/<script[^>]*src=["'][^"']*bard[^"']*["'][^>]*><\/script>/gi, "");
+      cleaned = cleaned.replace(/\s+contenteditable=["'][^"']*["']/gi, "");
+      if (!/^<!DOCTYPE html>/i.test(cleaned.trim())) {
+        cleaned = "<!DOCTYPE html>\n" + cleaned.trim();
+      }
+      return cleaned.trim();
+    }
+
+    function buildCleanGitHubHtmlFromDom() {
+      const clonedDoc = document.documentElement.cloneNode(true);
+
+      clonedDoc
+        .querySelectorAll('[data-bard-client-injected], script[src*="bard"], style[data-emotion]')
+        .forEach((el) => el.remove());
+
+      clonedDoc.querySelectorAll("[contenteditable]").forEach((el) => {
+        el.removeAttribute("contenteditable");
+      });
+
+      [
+        "multiEventClocksContainer",
+        "manageCompetitionsList",
+        "swLapsList",
+        "worldClocksGrid",
+        "dummyDevicesGrid"
+      ].forEach((id) => {
+        const node = clonedDoc.querySelector("#" + id);
+        if (node) node.innerHTML = "";
+      });
+
+      const orgPanel = clonedDoc.querySelector("#organizerPanel");
+      if (orgPanel) orgPanel.classList.add("hidden");
+
+      const exportModal = clonedDoc.querySelector("#htmlExportModal");
+      if (exportModal) exportModal.classList.add("hidden");
+
+      const dummyModal = clonedDoc.querySelector("#dummyDevicesModal");
+      if (dummyModal) dummyModal.classList.add("hidden");
+
+      const banner = clonedDoc.querySelector("#announcementBanner");
+      if (banner) banner.classList.add("hidden");
+
+      const bodyEl = clonedDoc.querySelector("body");
+      if (bodyEl) bodyEl.classList.remove("kiosk-active");
+
+      return "<!DOCTYPE html>\n" + clonedDoc.outerHTML;
+    }
+
+    async function openHtmlExportModal() {
+      const ta = document.getElementById("htmlExportTextarea");
+      const fb = document.getElementById("htmlCopyFeedback");
+      const modal = document.getElementById("htmlExportModal");
+      if (!ta || !modal) return;
+
+      ta.value = "Preparing clean index.html...";
+      modal.classList.remove("hidden");
+
+      let cleanCode = "";
+      try {
+        const res = await fetch(window.location.href, { cache: "no-store" });
+        if (res.ok) {
+          const rawText = await res.text();
+          if (rawText && rawText.includes("FIREBASE_CONFIG")) {
+            cleanCode = sanitizeRawHtmlString(rawText);
+          }
+        }
+      } catch (e) {}
+
+      if (!cleanCode) {
+        cleanCode = buildCleanGitHubHtmlFromDom();
+      }
+
+      ta.value = cleanCode;
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+
+      let copied = false;
+      try {
+        copied = document.execCommand("copy");
+      } catch (copyErr) {
+        copied = false;
+      }
+
+      if (fb) {
+        if (copied) {
+          fb.textContent = "Copied clean HTML to clipboard! Paste into index.html on GitHub.";
+          fb.className = "mt-2 text-xs font-bold text-emerald-400";
+        } else {
+          fb.textContent = "Tap '1. Select All Text' then '2. Copy Code Now' below.";
+          fb.className = "mt-2 text-xs font-bold text-amber-300";
+        }
+        fb.classList.remove("hidden");
+      }
+    }
+
+    function closeHtmlExportModal() {
+      const modal = document.getElementById("htmlExportModal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function selectAllExportHtml() {
+      const ta = document.getElementById("htmlExportTextarea");
+      if (!ta) return;
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+    }
+
+    function copyExportHtmlNow() {
+      const ta = document.getElementById("htmlExportTextarea");
+      const fb = document.getElementById("htmlCopyFeedback");
+      if (!ta) return;
+      selectAllExportHtml();
+      let copied = false;
+      try {
+        copied = document.execCommand("copy");
+      } catch (e) {
+        copied = false;
+      }
+      if (fb) {
+        fb.textContent = copied
+          ? "Copied clean HTML to clipboard! Paste into index.html on GitHub."
+          : "Selected! Press Ctrl+C (or Cmd+C / long-press Copy) to copy.";
+        fb.className = copied
+          ? "mt-2 text-xs font-bold text-emerald-400"
+          : "mt-2 text-xs font-bold text-amber-300";
+        fb.classList.remove("hidden");
+      }
+    }
+
+    // =========================================================================
+    // 8. SIMULATED TEST DEVICES MODAL
+    // =========================================================================
+    function openDummyDevicesModal() {
+      const modal = document.getElementById("dummyDevicesModal");
+      if (!modal) return;
+      renderDummyDevices();
+      modal.classList.remove("hidden");
+    }
+
+    function closeDummyDevicesModal() {
+      const modal = document.getElementById("dummyDevicesModal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function renderDummyDevices() {
+      const grid = document.getElementById("dummyDevicesGrid");
+      if (!grid) return;
+
+      const comps = boardState.competitions || [];
+      const nowMs = Date.now();
+      const deviceProfiles = [
+        { label: "Athlete Mobile (iPhone Safari)", badge: "LIVE SYNC", color: "emerald" },
+        { label: "Venue Stage TV (1080p Kiosk)", badge: "STAGE DISPLAY", color: "sky" }
+      ];
+
+      grid.innerHTML = deviceProfiles
+        .map((dev) => {
+          const previewBody =
+            comps.length === 0
+              ? `
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/90 p-5 text-center">
+                  <span class="standby-pill-blink inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-[10px] font-extrabold tracking-widest text-slate-200 uppercase">
+                    <span class="h-2 w-2 rounded-full bg-amber-400"></span>
+                    STANDBY MODE
+                  </span>
+                  <p class="mt-3 text-sm font-black text-white uppercase">WAITING FOR THE NEXT COMPETITION...</p>
+                </div>
+              `
+              : comps
+                  .map((c) => {
+                    const { activeMilestone } = getCompetitionMilestoneInfo(c, nowMs);
+                    const parts = formatTimeParts(activeMilestone ? Math.max(0, activeMilestone.ts - nowMs) : 0);
+                    return `
+                      <div class="rounded-2xl border border-slate-800 bg-slate-950/90 p-3.5">
+                        <div class="flex items-center justify-between gap-2">
+                          <p class="truncate text-xs font-black text-white uppercase">${escapeHtml(c.name)}</p>
+                          <span class="shrink-0 rounded bg-orange-500/20 px-2 py-0.5 text-[10px] font-bold text-orange-300">
+                            ${activeMilestone ? escapeHtml(activeMilestone.label) : "Concluded"}
+                          </span>
+                        </div>
+                        <p class="font-mono-num mt-2 text-lg font-extrabold text-orange-400">
+                          ${parts.days}d : ${parts.hours}h : ${parts.mins}m : ${parts.secs}s
+                        </p>
+                      </div>
+                    `;
+                  })
+                  .join("");
+
+          return `
+            <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 space-y-3">
+              <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <span class="text-xs font-extrabold text-slate-200">${dev.label}</span>
+                <span class="rounded-full bg-${dev.color}-500/15 px-2.5 py-0.5 text-[10px] font-extrabold text-${dev.color}-300">${dev.badge}</span>
+              </div>
+              <div class="space-y-2.5">${previewBody}</div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    // =========================================================================
+    // 9. CLOCK UTILITY TABS (EVENT CLOCK, TIMER, STOPWATCH, WORLD TIMER)
+    // =========================================================================
+    function switchClockMode(mode) {
+      document.querySelectorAll(".mode-pill").forEach((pill) => {
+        const isSelected = pill.dataset.mode === mode;
+        pill.className = isSelected
+          ? "mode-pill flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-xs font-extrabold tracking-wide text-white shadow-md shadow-orange-500/25 transition"
+          : "mode-pill flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold tracking-wide text-slate-400 transition hover:bg-slate-800/70 hover:text-white";
+      });
+
+      ["event", "timer", "stopwatch", "world"].forEach((viewKey) => {
+        const viewEl = document.getElementById(`view-${viewKey}`);
+        if (viewEl) viewEl.classList.toggle("hidden", viewKey !== mode);
+      });
+    }
+
+    // --- Match / Round Countdown Timer ---
+    function updateTimerReadout() {
+      const display = document.getElementById("timerDisplay");
+      if (!display) return;
+      const hrs = Math.floor(timerRemainingSeconds / 3600);
+      const mins = Math.floor((timerRemainingSeconds % 3600) / 60);
+      const secs = timerRemainingSeconds % 60;
+      display.textContent = `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+
+    function setTimerPreset(seconds) {
+      pauseTimer();
+      timerTotalSeconds = seconds;
+      timerRemainingSeconds = seconds;
+      const hIn = document.getElementById("timerHoursInput");
+      const mIn = document.getElementById("timerMinsInput");
+      const sIn = document.getElementById("timerSecsInput");
+      if (hIn) hIn.value = Math.floor(seconds / 3600);
+      if (mIn) mIn.value = Math.floor((seconds % 3600) / 60);
+      if (sIn) sIn.value = seconds % 60;
+      document.getElementById("timerStatusTag").textContent = "Ready";
+      updateTimerReadout();
+    }
+
+    function applyCustomTimerInputs() {
+      pauseTimer();
+      const hrs = Math.max(0, Math.min(99, parseInt(document.getElementById("timerHoursInput").value, 10) || 0));
+      const mins = Math.max(0, Math.min(59, parseInt(document.getElementById("timerMinsInput").value, 10) || 0));
+      const secs = Math.max(0, Math.min(59, parseInt(document.getElementById("timerSecsInput").value, 10) || 0));
+      const total = hrs * 3600 + mins * 60 + secs;
+      timerTotalSeconds = total > 0 ? total : 60;
+      timerRemainingSeconds = timerTotalSeconds;
+      document.getElementById("timerStatusTag").textContent = "Ready";
+      updateTimerReadout();
+    }
+
+    function toggleTimer() {
+      if (timerRunning) {
+        pauseTimer();
+        document.getElementById("timerStatusTag").textContent = "Paused";
+        return;
+      }
+      if (timerRemainingSeconds <= 0) {
+        timerRemainingSeconds = timerTotalSeconds;
+      }
+      timerRunning = true;
+      document.getElementById("timerStartPauseBtn").textContent = "Pause Timer";
+      document.getElementById("timerStatusTag").textContent = "Running";
+
+      timerInterval = setInterval(() => {
+        if (timerRemainingSeconds > 0) {
+          timerRemainingSeconds--;
+          updateTimerReadout();
+        }
+        if (timerRemainingSeconds <= 0) {
+          pauseTimer();
+          document.getElementById("timerStatusTag").textContent = "Time Up!";
+          showAnnouncement("ROUND TIMER COMPLETE", "Match / Round countdown has finished!");
+          playChime();
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      timerRunning = false;
+      clearInterval(timerInterval);
+      const btn = document.getElementById("timerStartPauseBtn");
+      if (btn) btn.textContent = "Start Timer";
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      timerRemainingSeconds = timerTotalSeconds;
+      document.getElementById("timerStatusTag").textContent = "Ready";
+      updateTimerReadout();
+    }
+
+    // --- Precision Stopwatch ---
+    function formatStopwatch(ms) {
+      const totalCentis = Math.floor(ms / 10);
+      const centis = totalCentis % 100;
+      const totalSec = Math.floor(totalCentis / 100);
+      const secs = totalSec % 60;
+      const mins = Math.floor(totalSec / 60);
+      return {
+        main: `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`,
+        ms: `.${String(centis).padStart(2, "0")}`
+      };
+    }
+
+    function toggleStopwatch() {
+      const btn = document.getElementById("swStartStopBtn");
+      const lapBtn = document.getElementById("swLapBtn");
+      if (swRunning) {
+        swRunning = false;
+        clearInterval(swInterval);
+        btn.textContent = "Resume";
+        btn.className =
+          "rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-7 py-3 text-sm font-extrabold text-white shadow-lg shadow-emerald-500/20 hover:brightness-110";
+        lapBtn.disabled = true;
+      } else {
+        swRunning = true;
+        swLastTick = performance.now();
+        btn.textContent = "Stop";
+        btn.className =
+          "rounded-2xl bg-gradient-to-r from-rose-500 to-red-600 px-7 py-3 text-sm font-extrabold text-white shadow-lg shadow-rose-500/20 hover:brightness-110";
+        lapBtn.disabled = false;
+        swInterval = setInterval(() => {
+          const now = performance.now();
+          swElapsedMs += now - swLastTick;
+          swLastTick = now;
+          const parts = formatStopwatch(swElapsedMs);
+          document.getElementById("swMainDisplay").textContent = parts.main;
+          document.getElementById("swMsDisplay").textContent = parts.ms;
+        }, 30);
+      }
+    }
+
+    function recordStopwatchLap() {
+      if (!swRunning) return;
+      const prevTotal = swLaps.length > 0 ? swLaps[0].totalMs : 0;
+      const splitMs = swElapsedMs - prevTotal;
+      swLaps.unshift({
+        lapNum: swLaps.length + 1,
+        splitMs,
+        totalMs: swElapsedMs
+      });
+      renderStopwatchLaps();
+    }
+
+    function resetStopwatch() {
+      swRunning = false;
+      clearInterval(swInterval);
+      swElapsedMs = 0;
+      swLaps = [];
+      document.getElementById("swMainDisplay").textContent = "00:00";
+      document.getElementById("swMsDisplay").textContent = ".00";
+      const btn = document.getElementById("swStartStopBtn");
+      btn.textContent = "Start";
+      btn.className =
+        "rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-7 py-3 text-sm font-extrabold text-white shadow-lg shadow-emerald-500/20 hover:brightness-110";
+      document.getElementById("swLapBtn").disabled = true;
+      renderStopwatchLaps();
+    }
+
+    function renderStopwatchLaps() {
+      const wrap = document.getElementById("swLapsContainer");
+      const list = document.getElementById("swLapsList");
+      const count = document.getElementById("swLapCount");
+      if (swLaps.length === 0) {
+        wrap.classList.add("hidden");
+        return;
+      }
+      wrap.classList.remove("hidden");
+      count.textContent = `${swLaps.length} Lap${swLaps.length > 1 ? "s" : ""}`;
+      list.innerHTML = swLaps
+        .map((l) => {
+          const s = formatStopwatch(l.splitMs);
+          const t = formatStopwatch(l.totalMs);
+          return `
+            <div class="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/75 px-3.5 py-2 text-xs">
+              <span class="font-bold text-slate-400">Lap ${l.lapNum}</span>
+              <span class="font-mono-num font-semibold text-orange-300">+${s.main}${s.ms}</span>
+              <span class="font-mono-num font-extrabold text-white">${t.main}${t.ms}</span>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    // --- World Timer ---
+    const WORLD_ZONES = [
+      { city: "Mumbai / New Delhi", code: "IST", tz: "Asia/Kolkata" },
+      { city: "Dubai", code: "GST", tz: "Asia/Dubai" },
+      { city: "London", code: "GMT/BST", tz: "Europe/London" },
+      { city: "New York", code: "EST/EDT", tz: "America/New_York" },
+      { city: "Tokyo", code: "JST", tz: "Asia/Tokyo" },
+      { city: "Sydney", code: "AEST", tz: "Australia/Sydney" }
+    ];
+
+    function renderWorldClocks() {
+      const grid = document.getElementById("worldClocksGrid");
+      if (!grid) return;
+      grid.innerHTML = WORLD_ZONES.map(
+        (z, idx) => `
+          <div class="rounded-2xl border border-slate-800/90 bg-slate-900/80 p-5 shadow-lg">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-extrabold text-white">${z.city}</span>
+              <span class="rounded-lg bg-slate-800 px-2 py-0.5 font-mono-num text-[11px] font-bold text-orange-400">${z.code}</span>
+            </div>
+            <p id="worldTime-${idx}" class="font-mono-num mt-3 text-3xl font-extrabold tracking-tight text-white">--:--:--</p>
+            <p id="worldDate-${idx}" class="mt-1 text-xs font-medium text-slate-400">---</p>
+          </div>
+        `
+      ).join("");
+      updateWorldClocksTick();
+    }
+
+    function updateWorldClocksTick() {
+      const now = new Date();
+      WORLD_ZONES.forEach((z, idx) => {
+        const tEl = document.getElementById(`worldTime-${idx}`);
+        const dEl = document.getElementById(`worldDate-${idx}`);
+        if (!tEl || !dEl) return;
+        try {
+          tEl.textContent = now.toLocaleTimeString([], {
+            timeZone: z.tz,
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+          });
+          dEl.textContent = now.toLocaleDateString([], {
+            timeZone: z.tz,
+            weekday: "short",
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+          });
+        } catch (e) {
+          tEl.textContent = now.toLocaleTimeString();
+        }
+      });
+    }
+
+    // =========================================================================
+    // 10. KIOSK STAGE DISPLAY, SOUND CHIMES, INSTALL & HELPERS
+    // =========================================================================
+    function enterKioskMode() {
+      document.body.classList.add("kiosk-active");
+      const exitBtn = document.getElementById("exitKioskBtn");
+      exitBtn.classList.remove("hidden");
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }
+
+    function requestExitKiosk() {
+      if (boardState.kioskPinRequired) {
+        openPinModal("exitKiosk");
+      } else {
+        exitKioskMode();
+      }
+    }
+
+    function exitKioskMode() {
+      document.body.classList.remove("kiosk-active");
+      document.getElementById("exitKioskBtn").classList.add("hidden");
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const label = document.getElementById("soundLabel");
+      const wrap = document.getElementById("soundIconWrap");
+      if (label) label.textContent = soundEnabled ? "Sound On" : "Muted";
+      if (wrap) {
+        wrap.innerHTML = soundEnabled
+          ? `<svg class="h-4 w-4 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>`
+          : `<svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>`;
+      }
+    }
+
+    function playChime() {
+      if (!soundEnabled) return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(660, ctx.currentTime);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.14);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.56);
+      } catch (e) {}
+    }
+
+    function showAnnouncement(title, message) {
+      const banner = document.getElementById("announcementBanner");
+      document.getElementById("announcementTitle").textContent = title;
+      document.getElementById("announcementBody").textContent = message;
+      banner.classList.remove("hidden");
+    }
+
+    function dismissAnnouncement() {
+      document.getElementById("announcementBanner").classList.add("hidden");
+    }
+
+    async function triggerInstallPrompt() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+      } else {
+        document.getElementById("installInfoModal").classList.remove("hidden");
+      }
+    }
+
+    function closeInstallModal() {
+      document.getElementById("installInfoModal").classList.add("hidden");
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+  </script>
+
+</body></html>
